@@ -1,0 +1,46 @@
+name: level30
+description: Level30 — Smart HAS — Gamificação de Hábitos Acadêmicos
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.0
+  geolocator: ^13.0.1
+  permission_handler: ^11.3.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  http: ^1.2.2
+  shared_preferences: ^2.3.2
+  google_fonts: ^6.2.1
+  fl_chart: ^0.69.0
+  flutter_animate: ^4.5.0
+  cached_network_image: ^3.4.1
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  showcaseview: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  mockito: ^5.4.4
+  build_runner: ^2.4.12
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/

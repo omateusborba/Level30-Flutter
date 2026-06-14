@@ -1,0 +1,455 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../core/constants/app_colors.dart';
+import '../../data/model/challenge.dart';
+import '../../data/service/quote_service.dart';
+import '../../data/service/weather_service.dart';
+import '../../domain/provider/challenge_provider.dart';
+import '../../domain/provider/user_provider.dart';
+import '../widgets/category_chip.dart';
+import '../widgets/challenge_card.dart';
+import '../widgets/delete_confirm_dialog.dart';
+import '../widgets/level30_app_bar.dart';
+import '../widgets/motivation_card.dart';
+import '../widgets/onboarding_tour.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _weatherService = WeatherService();
+  final _quoteService = QuoteService();
+
+  String _quote = 'Carregando citação…';
+  String _weatherEmoji = '🌡️';
+  String _weatherDesc = '';
+  String _weatherRec = '';
+  bool _weatherLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await startTourIfNeeded(context);
+    });
+  }
+
+  Future<void> _loadData() async {
+    final quote = await _quoteService.getMotivationalQuote();
+    if (!mounted) return;
+    setState(() => _quote = quote);
+
+    // Tenta localização; fallback para São Paulo
+    double lat = -23.5505, lon = -46.6333;
+    try {
+      final geoRes = await _weatherService.getCurrentWeather(lat, lon);
+      if (!mounted) return;
+      if (geoRes != null) {
+        final code = geoRes['weathercode'] as int?;
+        setState(() {
+          _weatherEmoji = _weatherService.getWeatherEmoji(code);
+          _weatherDesc = _weatherService.getWeatherDescription(code);
+          _weatherRec = _weatherService.getChallengeRecommendation(code);
+          _weatherLoaded = true;
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cp = context.watch<ChallengeProvider>();
+    final up = context.watch<UserProvider>();
+    final highRisk = cp.getHighestRisk();
+    final highRiskId = highRisk?.challengeId;
+    final showMotivation =
+        highRisk != null && highRisk.riskScore > 0.5;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: Level30AppBar(title: 'Level30'),
+      body: RefreshIndicator(
+        color: AppColors.accent,
+        backgroundColor: AppColors.surface,
+        onRefresh: _loadData,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Saudação
+                    Text(
+                      'Olá, ${up.profile.name}! 👋',
+                      style: GoogleFonts.poppins(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Continue construindo seus hábitos hoje.',
+                      style: GoogleFonts.poppins(
+                        color: AppColors.textSecond,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Card clima
+                    if (_weatherLoaded)
+                      _WeatherCard(
+                        emoji: _weatherEmoji,
+                        description: _weatherDesc,
+                        recommendation: _weatherRec,
+                      ),
+                    if (_weatherLoaded) const SizedBox(height: 12),
+
+                    // Card motivacional
+                    TourStep(
+                      globalKey: OnboardingTourKeys.motivCard,
+                      title: 'Motivação Diária',
+                      description: 'Uma frase inspiradora diferente a cada vez que você abre o app.\nGerada em tempo real via IA.',
+                      child: MotivationCard(
+                        quote: _quote,
+                        highRisk: showMotivation ? highRisk : null,
+                        onViewChallenge: showMotivation && highRiskId != null
+                            ? () => Navigator.pushNamed(context, '/challenge',
+                                arguments: highRiskId)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Estatísticas rápidas
+                    TourStep(
+                      globalKey: OnboardingTourKeys.xpBar,
+                      title: 'Seu Progresso',
+                      description: 'Aqui você acompanha seu XP total e nível atual.\nCada dia completado vale pontos de experiência.',
+                      child: _StatsRow(cp: cp),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Filtro de categorias
+                    Text(
+                      'Meus Desafios',
+                      style: GoogleFonts.poppins(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            ),
+
+            // Chips de categoria
+            SliverToBoxAdapter(
+              child: TourStep(
+                globalKey: OnboardingTourKeys.categoryRow,
+                title: 'Filtre seus Desafios',
+                description: 'Toque em uma categoria para ver apenas os desafios desse tipo:\nEstudos, Saúde, Fitness, Mindfulness ou Produtividade.',
+                child: SizedBox(
+                  height: 44,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      CategoryChip(
+                        category: null,
+                        isSelected: cp.selectedCategory == null,
+                        onTap: () => cp.selectCategory(null),
+                      ),
+                      const SizedBox(width: 8),
+                      ...ChallengeCategory.values.map(
+                        (cat) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: CategoryChip(
+                            category: cat,
+                            isSelected: cp.selectedCategory == cat,
+                            onTap: () => cp.selectCategory(cat),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+            // Lista de desafios
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: cp.challenges.isEmpty
+                  ? const SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 40),
+                          child: Text(
+                            'Nenhum desafio nesta categoria.',
+                            style: TextStyle(color: AppColors.textSecond),
+                          ),
+                        ),
+                      ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) {
+                          final challenge = cp.challenges[i];
+                          final card = i == 0
+                              ? TourStep(
+                                  globalKey: OnboardingTourKeys.challengeCard,
+                                  title: 'Seus Desafios de 30 Dias',
+                                  description: 'Cada card mostra seu progresso, streak e nível de risco.\nToque para ver os detalhes e marcar o dia de hoje.',
+                                  child: ChallengeCard(challenge: challenge),
+                                )
+                              : ChallengeCard(challenge: challenge);
+
+                          return Dismissible(
+                            key: Key(challenge.id),
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (_) => showDeleteConfirmDialog(
+                              context: context,
+                              challengeTitle: challenge.title,
+                            ),
+                            onDismissed: (_) {
+                              context
+                                  .read<ChallengeProvider>()
+                                  .deleteChallenge(challenge.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('"${challenge.title}" excluído.'),
+                                  backgroundColor: const Color(0xFF1A3A5C),
+                                  action: SnackBarAction(
+                                    label: 'OK',
+                                    textColor: AppColors.accent,
+                                    onPressed: () {},
+                                  ),
+                                ),
+                              );
+                            },
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 0, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDE350B).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: const Color(0xFFDE350B).withValues(alpha: 0.4),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.delete_forever,
+                                      color: Color(0xFFDE350B), size: 28),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Excluir',
+                                    style: TextStyle(
+                                        color: Color(0xFFDE350B),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            child: card,
+                          );
+                        },
+                        childCount: cp.challenges.length,
+                      ),
+                    ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
+      ),
+      floatingActionButton: TourStep(
+        globalKey: OnboardingTourKeys.fabButton,
+        title: 'Crie um Novo Desafio',
+        description: 'Toque aqui para criar seu próximo desafio de 30 dias.\nEscolha a categoria, duração e recompensa de XP.',
+        child: FloatingActionButton.extended(
+          onPressed: () => Navigator.pushNamed(context, '/create_challenge'),
+          tooltip: 'Novo desafio',
+          icon: const Icon(Icons.add),
+          label: const Text('Novo desafio'),
+        ),
+      ),
+      bottomNavigationBar: TourStep(
+        globalKey: OnboardingTourKeys.bottomNav,
+        title: 'Navegação Principal',
+        description: 'Use a barra inferior para navegar entre Home, Mapa e Perfil.\nO mapa mostra seus desafios geolocalizados.',
+        child: _BottomNav(currentIndex: 0),
+      ),
+    );
+  }
+}
+
+class _WeatherCard extends StatelessWidget {
+  final String emoji;
+  final String description;
+  final String recommendation;
+
+  const _WeatherCard({
+    required this.emoji,
+    required this.description,
+    required this.recommendation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 28)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  description,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'Sugestão: $recommendation',
+                  style: const TextStyle(
+                      color: AppColors.textSecond, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withAlpha(26),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.accent.withAlpha(77)),
+            ),
+            child: Text(
+              recommendation,
+              style: const TextStyle(
+                  color: AppColors.accent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatsRow extends StatelessWidget {
+  final ChallengeProvider cp;
+  const _StatsRow({required this.cp});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _StatChip(label: 'Ativos', value: '${cp.activeCount}',
+            icon: Icons.local_fire_department),
+        const SizedBox(width: 10),
+        _StatChip(label: 'Concluídos', value: '${cp.completedCount}',
+            icon: Icons.check_circle_outline),
+        const SizedBox(width: 10),
+        _StatChip(label: 'Melhor streak', value: '${cp.bestStreak}d',
+            icon: Icons.bolt),
+      ],
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StatChip(
+      {required this.label, required this.value, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.primary),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.accent, size: 18),
+            const SizedBox(height: 4),
+            Text(value,
+                style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16)),
+            Text(label,
+                style: const TextStyle(
+                    color: AppColors.textSecond, fontSize: 10)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNav extends StatelessWidget {
+  final int currentIndex;
+  const _BottomNav({required this.currentIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomNavigationBar(
+      currentIndex: currentIndex,
+      onTap: (i) {
+        if (i == currentIndex) return;
+        switch (i) {
+          case 0:
+            Navigator.pushReplacementNamed(context, '/home');
+          case 1:
+            Navigator.pushNamed(context, '/map');
+          case 2:
+            Navigator.pushNamed(context, '/profile');
+        }
+      },
+      items: const [
+        BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined), label: 'Início'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined), label: 'Mapa'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline), label: 'Perfil'),
+      ],
+    );
+  }
+}
