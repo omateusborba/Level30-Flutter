@@ -24,9 +24,9 @@
 **Level30** transforma o desenvolvimento de hábitos acadêmicos em um jogo de RPG. O usuário cria desafios de 30 dias, acumula XP a cada dia completado, avança de nível e recebe alertas inteligentes quando uma sequência está em risco.
 
 O sistema **Smart HAS** (Smart Habit Acceleration System) combina:
-- **Motor de risco com IA** — avalia cada desafio com score de 0,0 a 1,0 baseado em inatividade, progresso e streak
+- **Motor de risco baseado em regras** — avalia cada desafio com score de 0,0 a 1,0 a partir de uma fórmula determinística (inatividade, progresso e streak) — ver nota abaixo
 - **Notificações inteligentes** — alertas contextuais agendados por horário e disparados por nível de risco
-- **Mapa geolocalizado** — visualização dos desafios em mapa dark com CartoDB/OpenStreetMap
+- **Mapa de desafios** — visualização dos desafios em mapa dark com CartoDB/OpenStreetMap, posicionados ao redor da localização real do usuário
 - **Tour de onboarding** — guia interativo de 6 passos para novos usuários
 - **Integração com APIs reais** — clima em tempo real (Open-Meteo) e citações motivacionais (ZenQuotes)
 
@@ -58,6 +58,8 @@ MEDIUM   < 0,50  → Lembrete
 HIGH     < 0,75  → Motivação
 CRITICAL ≥ 0,75  → Sugestão de replanejamento
 ```
+
+> **Nota sobre "IA":** o RiskEngine é um sistema de regras/heurísticas determinísticas e testáveis — não há machine learning, modelo estatístico treinado ou chamada a IA generativa. É uma escolha de engenharia deliberada para um protótipo auditável. Evoluir esse motor para aprendizado de máquina real (ex.: prever risco a partir de padrões históricos de múltiplos usuários) é um candidato natural de roadmap futuro.
 
 ### Notificações
 - Lembrete diário agendado por horário (timezone America/Sao_Paulo)
@@ -95,7 +97,7 @@ CRITICAL ≥ 0,75  → Sugestão de replanejamento
 | **Login** | Formulário com validação de nome |
 | **Home** | Dashboard com desafios, clima atual, citação motivacional e estatísticas |
 | **Criar Desafio** | Formulário com categorias, sliders de duração (7–90 dias) e XP (100–1000) |
-| **Detalhe do Desafio** | Grade 30 dias, streak, anel de progresso, sugestão da IA e botão de concluir |
+| **Detalhe do Desafio** | Grade 30 dias, streak, anel de progresso, recomendação do motor de risco e botão de concluir |
 | **Mapa** | Mapa dark com marcadores dos desafios e localização GPS |
 | **Perfil** | Nível, XP, estatísticas, marcos atingidos e botão de rever tour |
 | **Notificações** | Toggle, seletor de horário, notificação de teste e alertas de risco |

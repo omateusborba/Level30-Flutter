@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "level30-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-08",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "level30-db",
+      "database_id": "4ba4cfbe-5c09-43c3-93f1-9129e732e372",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  }
+}

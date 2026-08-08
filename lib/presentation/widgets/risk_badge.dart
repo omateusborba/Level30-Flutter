@@ -42,8 +42,8 @@ class RiskBadge extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               '$pct%',
-              style: TextStyle(
-                color: _bgColor,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -52,7 +52,8 @@ class RiskBadge extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 assessment.riskLevel.label,
-                style: TextStyle(color: _bgColor, fontSize: 11),
+                style: const TextStyle(
+                    color: AppColors.textPrimary, fontSize: 11),
               ),
             ],
           ],

@@ -15,13 +15,22 @@ class OnboardingTourKeys {
   ];
 }
 
-Future<void> startTourIfNeeded(BuildContext context) async {
+Future<void> startTourIfNeeded(
+  BuildContext context, {
+  bool includeChallengeCard = true,
+}) async {
   final isFirst = await OnboardingService.isFirstTime();
   if (!isFirst) return;
   if (!context.mounted) return;
 
+  final keys = includeChallengeCard
+      ? OnboardingTourKeys.all
+      : OnboardingTourKeys.all
+          .where((k) => k != OnboardingTourKeys.challengeCard)
+          .toList();
+
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    ShowCaseWidget.of(context).startShowCase(OnboardingTourKeys.all);
+    ShowCaseWidget.of(context).startShowCase(keys);
   });
 }
 

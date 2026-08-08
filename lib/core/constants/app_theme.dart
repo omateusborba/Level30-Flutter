@@ -41,7 +41,7 @@ class AppTheme {
       labelStyle: const TextStyle(color: AppColors.textSecond),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -74,7 +74,7 @@ class AppTheme {
       backgroundColor: AppColors.surface,
       selectedColor: AppColors.accent.withAlpha(51),
       labelStyle: GoogleFonts.poppins(color: AppColors.textPrimary, fontSize: 13),
-      side: const BorderSide(color: AppColors.primary),
+      side: const BorderSide(color: AppColors.border),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(

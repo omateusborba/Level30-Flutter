@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/model/challenge.dart';
+import '../../data/service/api_client.dart';
 import '../../data/service/quote_service.dart';
 import '../../data/service/weather_service.dart';
 import '../../domain/provider/challenge_provider.dart';
@@ -36,17 +38,22 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadData();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await startTourIfNeeded(context);
+      final hasChallenge = context.read<ChallengeProvider>().hasAnyChallenge;
+      await startTourIfNeeded(context, includeChallengeCard: hasChallenge);
     });
   }
+
+  Future<void> _refreshAll() => Future.wait([
+        _loadData(),
+        context.read<ChallengeProvider>().refresh(),
+      ]);
 
   Future<void> _loadData() async {
     final quote = await _quoteService.getMotivationalQuote();
     if (!mounted) return;
     setState(() => _quote = quote);
 
-    // Tenta localização; fallback para São Paulo
-    double lat = -23.5505, lon = -46.6333;
+    final (lat, lon) = await _resolveLocation();
     try {
       final geoRes = await _weatherService.getCurrentWeather(lat, lon);
       if (!mounted) return;
@@ -60,6 +67,33 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (_) {}
+  }
+
+  // Tenta localização real do dispositivo; fallback para São Paulo.
+  Future<(double, double)> _resolveLocation() async {
+    const fallback = (-23.5505, -46.6333);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return fallback;
+
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        return fallback;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 5),
+        ),
+      );
+      return (pos.latitude, pos.longitude);
+    } catch (_) {
+      return fallback;
+    }
   }
 
   @override
@@ -77,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         color: AppColors.accent,
         backgroundColor: AppColors.surface,
-        onRefresh: _loadData,
+        onRefresh: _refreshAll,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -117,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     TourStep(
                       globalKey: OnboardingTourKeys.motivCard,
                       title: 'Motivação Diária',
-                      description: 'Uma frase inspiradora diferente a cada vez que você abre o app.\nGerada em tempo real via IA.',
+                      description: 'Uma frase inspiradora nova a cada visita, buscada em uma base de citações online.\nSempre um estímulo diferente para o seu dia.',
                       child: MotivationCard(
                         quote: _quote,
                         highRisk: showMotivation ? highRisk : null,
@@ -193,16 +227,18 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: cp.challenges.isEmpty
-                  ? const SliverToBoxAdapter(
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 40),
-                          child: Text(
-                            'Nenhum desafio nesta categoria.',
-                            style: TextStyle(color: AppColors.textSecond),
-                          ),
-                        ),
-                      ),
+                  ? SliverToBoxAdapter(
+                      child: cp.hasAnyChallenge
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 40),
+                                child: Text(
+                                  'Nenhum desafio nesta categoria.',
+                                  style: TextStyle(color: AppColors.textSecond),
+                                ),
+                              ),
+                            )
+                          : const _EmptyChallenges(),
                     )
                   : SliverList(
                       delegate: SliverChildBuilderDelegate(
@@ -220,23 +256,32 @@ class _HomeScreenState extends State<HomeScreen> {
                           return Dismissible(
                             key: Key(challenge.id),
                             direction: DismissDirection.endToStart,
-                            confirmDismiss: (_) => showDeleteConfirmDialog(
-                              context: context,
-                              challengeTitle: challenge.title,
-                            ),
+                            confirmDismiss: (_) async {
+                              final confirmed = await showDeleteConfirmDialog(
+                                context: context,
+                                challengeTitle: challenge.title,
+                              );
+                              if (!confirmed) return false;
+                              if (!context.mounted) return false;
+                              try {
+                                await context
+                                    .read<ChallengeProvider>()
+                                    .deleteChallenge(challenge.id);
+                                return true;
+                              } on ApiException catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(e.message)),
+                                  );
+                                }
+                                return false;
+                              }
+                            },
                             onDismissed: (_) {
-                              context
-                                  .read<ChallengeProvider>()
-                                  .deleteChallenge(challenge.id);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('"${challenge.title}" excluído.'),
                                   backgroundColor: const Color(0xFF1A3A5C),
-                                  action: SnackBarAction(
-                                    label: 'OK',
-                                    textColor: AppColors.accent,
-                                    onPressed: () {},
-                                  ),
                                 ),
                               );
                             },
@@ -294,8 +339,48 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: TourStep(
         globalKey: OnboardingTourKeys.bottomNav,
         title: 'Navegação Principal',
-        description: 'Use a barra inferior para navegar entre Home, Mapa e Perfil.\nO mapa mostra seus desafios geolocalizados.',
+        description: 'Use a barra inferior para navegar entre Home, Mapa e Perfil.\nO mapa organiza seus desafios ao redor da sua localização atual.',
         child: _BottomNav(currentIndex: 0),
+      ),
+    );
+  }
+}
+
+class _EmptyChallenges extends StatelessWidget {
+  const _EmptyChallenges();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 32, bottom: 16),
+      child: Column(
+        children: [
+          const Text('🚀', style: TextStyle(fontSize: 40)),
+          const SizedBox(height: 12),
+          Text(
+            'Você ainda não tem desafios',
+            style: GoogleFonts.poppins(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Crie seu primeiro desafio de 30 dias e comece a construir o hábito hoje.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(color: AppColors.textSecond, fontSize: 13),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pushNamed(context, '/create_challenge'),
+            icon: const Icon(Icons.add_task),
+            label: const Text('Criar meu primeiro desafio'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(260, 48),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -319,7 +404,7 @@ class _WeatherCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -402,7 +487,7 @@ class _StatChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           children: [

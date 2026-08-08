@@ -7,7 +7,6 @@ import 'data/service/notification_service.dart';
 import 'data/service/onboarding_service.dart';
 import 'domain/provider/challenge_provider.dart';
 import 'domain/provider/notification_provider.dart';
-import 'domain/provider/risk_provider.dart';
 import 'domain/provider/user_provider.dart';
 import 'presentation/screens/challenge_detail_screen.dart';
 import 'presentation/screens/create_challenge_screen.dart';
@@ -27,9 +26,8 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ChallengeProvider()..init()),
+        ChangeNotifierProvider(create: (_) => ChallengeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => RiskProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()..init()),
       ],
       child: const Level30App(),

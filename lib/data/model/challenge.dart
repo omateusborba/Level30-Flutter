@@ -19,12 +19,14 @@ extension ChallengeCategoryExt on ChallengeCategory {
     ChallengeCategory.fitness      => '💪',
   };
 
+  // Paleta deliberadamente fora da faixa semáforo usada por AppColors.risk*
+  // (verde/amarelo/laranja/vermelho), para não confundir categoria com risco.
   Color get color => switch (this) {
-    ChallengeCategory.health       => const Color(0xFF00C853),
+    ChallengeCategory.health       => const Color(0xFF00BCD4),
     ChallengeCategory.study        => const Color(0xFF2979FF),
-    ChallengeCategory.productivity => const Color(0xFFFF6D00),
+    ChallengeCategory.productivity => const Color(0xFF7C4DFF),
     ChallengeCategory.mindfulness  => const Color(0xFFAA00FF),
-    ChallengeCategory.fitness      => const Color(0xFFD50000),
+    ChallengeCategory.fitness      => const Color(0xFFFF4081),
   };
 }
 
@@ -55,20 +57,17 @@ class Challenge {
   bool get isCompleted => currentDay >= totalDays;
   int get earnedXp => ((currentDay / totalDays) * xpReward).toInt();
 
-  Challenge copyWith({
-    int? currentDay,
-    int? streak,
-    DateTime? lastActivityAt,
-  }) =>
-      Challenge(
-        id: id,
-        title: title,
-        category: category,
-        description: description,
-        totalDays: totalDays,
-        xpReward: xpReward,
-        currentDay: currentDay ?? this.currentDay,
-        streak: streak ?? this.streak,
-        lastActivityAt: lastActivityAt ?? this.lastActivityAt,
-      );
+  factory Challenge.fromJson(Map<String, dynamic> json) => Challenge(
+    id: json['id'] as String,
+    title: json['title'] as String,
+    category: ChallengeCategory.values.byName(json['category'] as String),
+    description: json['description'] as String,
+    totalDays: json['totalDays'] as int,
+    currentDay: json['currentDay'] as int,
+    xpReward: json['xpReward'] as int,
+    streak: json['streak'] as int,
+    lastActivityAt: json['lastActivityAt'] != null
+        ? DateTime.parse(json['lastActivityAt'] as String)
+        : null,
+  );
 }

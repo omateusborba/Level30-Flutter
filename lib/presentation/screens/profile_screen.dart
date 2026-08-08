@@ -31,20 +31,42 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () => Navigator.pushNamed(context, '/notifications'),
           ),
           IconButton(
-            icon: const Icon(Icons.dark_mode, color: AppColors.textSecond),
-            tooltip: 'Tema sempre escuro (Level30)',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text(
-                      'Level30 é sempre Dark. ⚡ Faz parte da identidade!'),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              );
+            icon: const Icon(Icons.logout, color: AppColors.textSecond),
+            tooltip: 'Sair',
+            onPressed: () async {
+              await context.read<UserProvider>().logOut();
+              if (!context.mounted) return;
+              context.read<ChallengeProvider>().clear();
+              Navigator.pushNamedAndRemoveUntil(
+                  context, '/login', (route) => false);
             },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: Tooltip(
+                message: 'Level30 é sempre Dark ⚡ — faz parte da identidade!',
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.dark_mode, color: AppColors.textSecond, size: 14),
+                      SizedBox(width: 4),
+                      Text('Dark',
+                          style: TextStyle(
+                              color: AppColors.textSecond, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -189,7 +211,7 @@ class _StatsGrid extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.primary),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -264,7 +286,7 @@ class _MilestonesSection extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.amber.withAlpha(102)),
+                border: Border.all(color: AppColors.riskMedium.withAlpha(102)),
               ),
               child: Row(
                 children: [
@@ -277,7 +299,7 @@ class _MilestonesSection extends StatelessWidget {
                           color: AppColors.textPrimary, fontSize: 13),
                     ),
                   ),
-                  const Icon(Icons.star, color: Colors.amber, size: 16),
+                  const Icon(Icons.star, color: AppColors.riskMedium, size: 16),
                 ],
               ),
             ),

@@ -20,4 +20,9 @@ class UserProfile {
 
   UserProfile copyWith({String? name, int? totalXp}) =>
       UserProfile(name: name ?? this.name, totalXp: totalXp ?? this.totalXp);
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+    name: json['name'] as String,
+    totalXp: json['totalXp'] as int,
+  );
 }

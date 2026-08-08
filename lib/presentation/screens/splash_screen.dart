@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../domain/provider/challenge_provider.dart';
+import '../../domain/provider/user_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,9 +17,24 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) Navigator.pushReplacementNamed(context, '/login');
-    });
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final userProvider = context.read<UserProvider>();
+    final minDelay = Future.delayed(const Duration(milliseconds: 2500));
+
+    await userProvider.restoreSession();
+    await minDelay;
+    if (!mounted) return;
+
+    if (userProvider.isAuthenticated) {
+      await context.read<ChallengeProvider>().refresh();
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/model/challenge.dart';
+import '../../data/service/api_client.dart';
 import '../../domain/provider/challenge_provider.dart';
 
 class CreateChallengeScreen extends StatefulWidget {
@@ -22,22 +23,43 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
   int _totalDays = 30;
 
   @override
+  void initState() {
+    super.initState();
+    _titleController.addListener(_onTitleChanged);
+  }
+
+  void _onTitleChanged() => setState(() {});
+
+  @override
   void dispose() {
+    _titleController.removeListener(_onTitleChanged);
     _titleController.dispose();
     _descController.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  bool _submitting = false;
+
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    context.read<ChallengeProvider>().addChallenge(
-          title: _titleController.text.trim(),
-          category: _selectedCategory,
-          description: _descController.text.trim(),
-          xpReward: _xpReward.toInt(),
-          totalDays: _totalDays,
-        );
-    Navigator.pop(context);
+    setState(() => _submitting = true);
+    try {
+      await context.read<ChallengeProvider>().addChallenge(
+            title: _titleController.text.trim(),
+            category: _selectedCategory,
+            description: _descController.text.trim(),
+            xpReward: _xpReward.toInt(),
+            totalDays: _totalDays,
+          );
+      if (mounted) Navigator.pop(context);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -59,7 +81,7 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _submit,
+            onPressed: _submitting ? null : _submit,
             child: Text(
               'Criar',
               style: GoogleFonts.poppins(
@@ -182,9 +204,16 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
 
             // Botão criar
             ElevatedButton.icon(
-              onPressed: _submit,
-              icon: const Icon(Icons.add_task),
-              label: const Text('Criar Desafio'),
+              onPressed: _submitting ? null : _submit,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.background),
+                    )
+                  : const Icon(Icons.add_task),
+              label: Text(_submitting ? 'Criando…' : 'Criar Desafio'),
             ),
             const SizedBox(height: 24),
           ],
@@ -231,7 +260,7 @@ class _CategorySelector extends StatelessWidget {
               color: isSelected ? cat.color.withAlpha(51) : AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? cat.color : AppColors.primary,
+                color: isSelected ? cat.color : AppColors.border,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -288,7 +317,7 @@ class _PreviewCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primary.withAlpha(77)),
+            border: Border.all(color: AppColors.border.withAlpha(179)),
           ),
           child: IntrinsicHeight(
             child: Row(

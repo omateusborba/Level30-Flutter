@@ -53,3 +53,8 @@ android/.gradle/
 # Google Services (never commit credentials)
 google-services.json
 GoogleService-Info.plist
+
+# Node / Cloudflare Worker (server/)
+node_modules/
+.wrangler/
+.dev.vars

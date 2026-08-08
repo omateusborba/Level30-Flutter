@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/model/challenge.dart';
-import '../../data/model/risk_assessment.dart';
+import '../../data/service/api_client.dart';
 import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/notification_provider.dart';
 import '../../domain/provider/user_provider.dart';
@@ -63,16 +63,24 @@ class ChallengeDetailScreen extends StatelessWidget {
                     challengeTitle: challenge.title,
                   );
                   if (confirmed && context.mounted) {
-                    context
-                        .read<ChallengeProvider>()
-                        .deleteChallenge(challengeId);
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('"${challenge.title}" excluído.'),
-                        backgroundColor: const Color(0xFF1A3A5C),
-                      ),
-                    );
+                    try {
+                      await context
+                          .read<ChallengeProvider>()
+                          .deleteChallenge(challengeId);
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('"${challenge.title}" excluído.'),
+                          backgroundColor: const Color(0xFF1A3A5C),
+                        ),
+                      );
+                    } on ApiException catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.message)),
+                      );
+                    }
                   }
                 },
               ),
@@ -182,9 +190,9 @@ class ChallengeDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Sugestão da IA
-                _AISuggestionCard(
-                  assessment: risk,
+                // Recomendação gerada por IA (Cloudflare Workers AI)
+                _RecommendationCard(
+                  challengeId: challengeId,
                   catColor: catColor,
                 ),
                 const SizedBox(height: 20),
@@ -209,36 +217,43 @@ class ChallengeDetailScreen extends StatelessWidget {
                 ElevatedButton.icon(
                   onPressed: alreadyDone || challenge.isCompleted
                       ? null
-                      : () {
-                          context
-                              .read<ChallengeProvider>()
-                              .completeDay(challengeId);
-                          context
-                              .read<UserProvider>()
-                              .addXp(challenge.xpReward ~/ challenge.totalDays);
+                      : () async {
+                          try {
+                            final result = await context
+                                .read<ChallengeProvider>()
+                                .completeDay(challengeId);
+                            if (!context.mounted) return;
+                            context.read<UserProvider>().syncTotalXp(result.totalXp);
 
-                          // Notificação de marco nos dias 7, 14, 21, 30
-                          final nextDay = challenge.currentDay + 1;
-                          if ([7, 14, 21, 30].contains(nextDay)) {
-                            final updated = challenge.copyWith(currentDay: nextDay);
-                            context
-                                .read<NotificationProvider>()
-                                .checkAndNotify(
-                                  challenges: [updated],
-                                  risks: [context.read<ChallengeProvider>().getRisk(challengeId)],
-                                );
+                            final updated = context
+                                .read<ChallengeProvider>()
+                                .getById(challengeId)!;
+
+                            // Notificação de marco nos dias 7, 14, 21, 30
+                            if ([7, 14, 21, 30].contains(updated.currentDay)) {
+                              await context.read<NotificationProvider>().checkAndNotify(
+                                challenges: [updated],
+                                risks: [context.read<ChallengeProvider>().getRisk(challengeId)],
+                              );
+                            }
+
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    '✅ Dia ${updated.currentDay} concluído! +${result.xpDelta} XP'),
+                                backgroundColor: AppColors.riskLow,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
+                              ),
+                            );
+                          } on ApiException catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.message)),
+                            );
                           }
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  '✅ Dia ${challenge.currentDay + 1} concluído! +${challenge.xpReward ~/ challenge.totalDays} XP'),
-                              backgroundColor: AppColors.riskLow,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                            ),
-                          );
                         },
                   icon: Icon(alreadyDone
                       ? Icons.check_circle
@@ -288,7 +303,7 @@ class _InfoTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primary),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             children: [
@@ -308,12 +323,47 @@ class _InfoTile extends StatelessWidget {
       );
 }
 
-class _AISuggestionCard extends StatelessWidget {
-  final RiskAssessment assessment;
+class _RecommendationCard extends StatefulWidget {
+  final String challengeId;
   final Color catColor;
 
-  const _AISuggestionCard(
-      {required this.assessment, required this.catColor});
+  const _RecommendationCard(
+      {required this.challengeId, required this.catColor});
+
+  @override
+  State<_RecommendationCard> createState() => _RecommendationCardState();
+}
+
+class _RecommendationCardState extends State<_RecommendationCard> {
+  bool _loading = true;
+  String? _message;
+  bool _aiGenerated = false;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final res = await ApiClient.instance
+          .get('/challenges/${widget.challengeId}/recommendation') as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        _message = res['message'] as String;
+        _aiGenerated = res['aiGenerated'] as bool;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _failed = true;
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -322,38 +372,78 @@ class _AISuggestionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: catColor.withAlpha(77)),
+        border: Border.all(color: widget.catColor.withAlpha(77)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('🤖', style: TextStyle(fontSize: 22)),
+          const Text('📊', style: TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Sugestão da IA',
-                  style: TextStyle(
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+                Row(
+                  children: [
+                    const Text(
+                      'Recomendação Level30',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (!_loading && !_failed) ...[
+                      const SizedBox(width: 8),
+                      _SourcePill(aiGenerated: _aiGenerated),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  assessment.suggestedAction.message,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
-                    height: 1.5,
+                const SizedBox(height: 8),
+                if (_loading)
+                  const SizedBox(
+                    height: 14,
+                    width: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.accent),
+                  )
+                else
+                  Text(
+                    _failed
+                        ? 'Não foi possível carregar a recomendação agora.'
+                        : _message!,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SourcePill extends StatelessWidget {
+  final bool aiGenerated;
+  const _SourcePill({required this.aiGenerated});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = aiGenerated ? AppColors.accent : AppColors.textSecond;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(26),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: color.withAlpha(102)),
+      ),
+      child: Text(
+        aiGenerated ? 'Gerado por IA' : 'Sugestão padrão',
+        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w600),
       ),
     );
   }

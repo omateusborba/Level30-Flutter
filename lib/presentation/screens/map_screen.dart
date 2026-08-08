@@ -73,12 +73,12 @@ class _MapScreenState extends State<MapScreen> {
         message: 'Você está aqui',
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.blue.shade700,
+            color: AppColors.accent,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [BoxShadow(color: Colors.blue.withAlpha(100), blurRadius: 8)],
+            boxShadow: [BoxShadow(color: AppColors.accent.withAlpha(100), blurRadius: 8)],
           ),
-          child: const Icon(Icons.person, color: Colors.white, size: 22),
+          child: const Icon(Icons.person, color: AppColors.background, size: 22),
         ),
       ),
     ));
@@ -87,8 +87,8 @@ class _MapScreenState extends State<MapScreen> {
       point: userPos,
       radius: 200,
       useRadiusInMeter: true,
-      color: Colors.blue.withAlpha(30),
-      borderColor: Colors.blue.withAlpha(120),
+      color: AppColors.accent.withAlpha(30),
+      borderColor: AppColors.accent.withAlpha(120),
       borderStrokeWidth: 2,
     ));
 
@@ -101,7 +101,7 @@ class _MapScreenState extends State<MapScreen> {
         userPos.latitude + offset.$1,
         userPos.longitude + offset.$2,
       );
-      final color = c.isCompleted ? Colors.amber : AppColors.riskLow;
+      final color = c.isCompleted ? AppColors.riskMedium : AppColors.riskLow;
 
       markers.add(Marker(
         point: pos,
@@ -140,7 +140,7 @@ class _MapScreenState extends State<MapScreen> {
           point: pos,
           radius: 350,
           useRadiusInMeter: true,
-          color: Colors.red.withAlpha(30),
+          color: AppColors.riskCritical.withAlpha(30),
           borderColor: AppColors.riskCritical.withAlpha(120),
           borderStrokeWidth: 1,
         ));
@@ -167,7 +167,7 @@ class _MapScreenState extends State<MapScreen> {
               child: Container(
                 width: 40, height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -290,7 +290,7 @@ class _MapScreenState extends State<MapScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: const Text('📍 São Paulo (localização padrão)',
                       style: TextStyle(color: AppColors.textSecond, fontSize: 12)),
@@ -328,22 +328,28 @@ class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 190),
         decoration: BoxDecoration(
           color: AppColors.surface.withAlpha(230),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: const [
-            _LegendDot(color: Colors.blue, label: 'Você'),
+            _LegendDot(color: AppColors.accent, label: 'Você'),
             SizedBox(height: 4),
-            _LegendDot(color: Color(0xFF00C853), label: 'Ativo'),
+            _LegendDot(color: AppColors.riskLow, label: 'Ativo'),
             SizedBox(height: 4),
-            _LegendDot(color: Colors.amber, label: 'Concluído'),
+            _LegendDot(color: AppColors.riskMedium, label: 'Concluído'),
             SizedBox(height: 4),
-            _LegendDot(color: Colors.red, label: 'Zona de risco'),
+            _LegendDot(color: AppColors.riskCritical, label: 'Zona de risco'),
+            SizedBox(height: 8),
+            Text(
+              'Posição do desafio é ilustrativa, calculada a partir da sua localização.',
+              style: TextStyle(color: AppColors.textSecond, fontSize: 10, height: 1.3),
+            ),
           ],
         ),
       );
