@@ -6,8 +6,10 @@ import 'core/constants/app_theme.dart';
 import 'data/service/notification_service.dart';
 import 'data/service/onboarding_service.dart';
 import 'domain/provider/challenge_provider.dart';
+import 'domain/provider/chat_provider.dart';
 import 'domain/provider/notification_provider.dart';
 import 'domain/provider/user_provider.dart';
+import 'presentation/screens/chat_screen.dart';
 import 'presentation/screens/challenge_detail_screen.dart';
 import 'presentation/screens/create_challenge_screen.dart';
 import 'presentation/screens/home_screen.dart';
@@ -21,7 +23,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await NotificationService().initialize();
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('NotificationService.initialize falhou: $e');
+  }
 
   runApp(
     MultiProvider(
@@ -29,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ChallengeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()..init()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: const Level30App(),
     ),
@@ -55,6 +60,7 @@ class Level30App extends StatelessWidget {
           '/map'          : (_) => const MapScreen(),
           '/create_challenge' : (_) => const CreateChallengeScreen(),
           '/notifications': (_) => const NotificationsScreen(),
+          '/chat'         : (_) => const ChatScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/challenge') {

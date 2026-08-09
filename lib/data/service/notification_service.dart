@@ -31,6 +31,12 @@ class NotificationService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
+      // Sem isso, o iOS não exibe banner/som quando o app está em primeiro
+      // plano — a notificação "dispara" mas fica invisível (ex.: botão de
+      // teste na própria tela de Notificações).
+      defaultPresentAlert: true,
+      defaultPresentBadge: true,
+      defaultPresentSound: true,
     );
     await _local.initialize(
       const InitializationSettings(android: android, iOS: ios),
@@ -65,7 +71,11 @@ class NotificationService {
 
   NotificationDetails get _details => NotificationDetails(
         android: _androidDetails,
-        iOS: const DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
       );
 
   // ─── envio imediato ───────────────────────────────────────────────────────

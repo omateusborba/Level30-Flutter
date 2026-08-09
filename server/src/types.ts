@@ -26,6 +26,7 @@ export interface UserRow {
   password_salt: string;
   name: string;
   total_xp: number;
+  avatar: string | null;
   created_at: string;
 }
 

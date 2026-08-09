@@ -4,6 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Level30 precisa acessar suas fotos para você escolher uma foto de perfil.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>O Level30 precisa acessar a câmera para você tirar uma foto de perfil.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

@@ -107,7 +107,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: Level30AppBar(title: 'Level30'),
+      appBar: Level30AppBar(
+        title: 'Level30',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline, color: AppColors.accent),
+            tooltip: 'Assistente',
+            onPressed: () => Navigator.pushNamed(context, '/chat'),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         color: AppColors.accent,
         backgroundColor: AppColors.surface,

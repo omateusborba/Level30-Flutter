@@ -11,7 +11,13 @@ function isValidEmail(email: string): boolean {
 }
 
 function publicUser(user: UserRow) {
-  return { id: user.id, name: user.name, email: user.email, totalXp: user.total_xp };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    totalXp: user.total_xp,
+    avatar: user.avatar,
+  };
 }
 
 auth.post('/signup', async (c) => {
@@ -45,7 +51,7 @@ auth.post('/signup', async (c) => {
     .run();
 
   const token = await signJwt(id, email, c.env.JWT_SECRET);
-  return c.json({ token, user: { id, name, email, totalXp: 0 } }, 201);
+  return c.json({ token, user: { id, name, email, totalXp: 0, avatar: null } }, 201);
 });
 
 auth.post('/login', async (c) => {

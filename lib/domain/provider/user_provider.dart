@@ -72,6 +72,13 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Envia a foto (já em data URI base64) para o backend e atualiza o perfil local.
+  Future<void> updateAvatar(String avatarDataUri) async {
+    final res = await ApiClient.instance.put('/me/avatar', {'avatar': avatarDataUri});
+    _profile = _profile.copyWith(avatar: (res as Map<String, dynamic>)['avatar'] as String);
+    notifyListeners();
+  }
+
   Future<void> _applyAuthResponse(Map<String, dynamic> res) async {
     _token = res['token'] as String;
     _profile = UserProfile.fromJson(res['user'] as Map<String, dynamic>);

@@ -52,7 +52,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _sendTest(NotificationProvider np) async {
     setState(() => _sending = true);
-    await np.sendTest();
+    try {
+      await np.sendTest();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comando de notificação enviado ao sistema, sem erros.'),
+            backgroundColor: AppColors.accent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Falha ao enviar: $e'),
+            backgroundColor: AppColors.riskCritical,
+          ),
+        );
+      }
+    }
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) setState(() => _sending = false);
   }
@@ -75,6 +94,56 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ── Aviso de permissão negada pelo SO ────────────────────────────
+          if (!np.permissionGranted) ...[
+            _Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.notifications_off_outlined,
+                            color: AppColors.riskCritical),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Notificações desativadas no sistema',
+                            style: GoogleFonts.poppins(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'O Level30 não tem permissão para enviar notificações neste dispositivo. '
+                      'Ative nas Configurações do sistema para receber lembretes e alertas de risco.',
+                      style: GoogleFonts.poppins(
+                          color: AppColors.textSecond, fontSize: 12),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: np.openSettings,
+                        icon: const Icon(Icons.settings_outlined, size: 18),
+                        label: const Text('Abrir Configurações'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: AppColors.background,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           // ── Ativar / desativar ───────────────────────────────────────────
           _Card(
             child: SwitchListTile(

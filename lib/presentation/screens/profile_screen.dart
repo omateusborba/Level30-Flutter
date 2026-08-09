@@ -1,10 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/string_extensions.dart';
 import '../../data/model/challenge.dart';
 import '../../data/model/user_profile.dart';
+import '../../data/service/api_client.dart';
 import '../../data/service/onboarding_service.dart';
 import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/user_provider.dart';
@@ -134,31 +138,158 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class _AvatarSection extends StatelessWidget {
+class _AvatarSection extends StatefulWidget {
   final UserProfile profile;
   const _AvatarSection({required this.profile});
 
   @override
+  State<_AvatarSection> createState() => _AvatarSectionState();
+}
+
+class _AvatarSectionState extends State<_AvatarSection> {
+  bool _uploading = false;
+
+  Uint8List? _decodeAvatar(String? dataUri) {
+    if (dataUri == null) return null;
+    final commaIndex = dataUri.indexOf(',');
+    if (commaIndex == -1) return null;
+    try {
+      return base64Decode(dataUri.substring(commaIndex + 1));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _pickFrom(ImageSource source) async {
+    Navigator.of(context).pop();
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 75,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploading = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final dataUri = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      if (!mounted) return;
+      await context.read<UserProvider>().updateAvatar(dataUri);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: AppColors.riskCritical),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível atualizar a foto. Tente novamente.'),
+            backgroundColor: AppColors.riskCritical,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  void _showPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined, color: AppColors.accent),
+              title: Text('Câmera', style: GoogleFonts.poppins(color: AppColors.textPrimary)),
+              onTap: () => _pickFrom(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+              title: Text('Galeria', style: GoogleFonts.poppins(color: AppColors.textPrimary)),
+              onTap: () => _pickFrom(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final profile = widget.profile;
+    final avatarBytes = _decodeAvatar(profile.avatar);
+
     return Column(
       children: [
-        Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.primary,
-            border: Border.all(color: AppColors.accent, width: 2),
-          ),
-          child: Center(
-            child: Text(
-              profile.name.initials,
-              style: GoogleFonts.poppins(
-                color: AppColors.textPrimary,
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
+        GestureDetector(
+          onTap: _uploading ? null : _showPicker,
+          child: Stack(
+            children: [
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary,
+                  border: Border.all(color: AppColors.accent, width: 2),
+                  image: avatarBytes != null
+                      ? DecorationImage(image: MemoryImage(avatarBytes), fit: BoxFit.cover)
+                      : null,
+                ),
+                child: avatarBytes == null
+                    ? Center(
+                        child: _uploading
+                            ? const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: AppColors.accent),
+                              )
+                            : Text(
+                                profile.name.initials,
+                                style: GoogleFonts.poppins(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      )
+                    : _uploading
+                        ? Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black45,
+                            ),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: AppColors.accent),
+                              ),
+                            ),
+                          )
+                        : null,
               ),
-            ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent,
+                  ),
+                  child: const Icon(Icons.edit, size: 14, color: AppColors.background),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),

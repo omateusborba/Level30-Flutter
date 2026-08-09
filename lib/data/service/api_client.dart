@@ -57,6 +57,13 @@ class ApiClient {
     return _handle(res);
   }
 
+  Future<dynamic> put(String path, [Map<String, dynamic>? body]) async {
+    final res = await http
+        .put(_uri(path), headers: _headers, body: body != null ? jsonEncode(body) : null)
+        .timeout(const Duration(seconds: 15));
+    return _handle(res);
+  }
+
   Future<dynamic> delete(String path) async {
     final res = await http.delete(_uri(path), headers: _headers).timeout(const Duration(seconds: 15));
     return _handle(res);

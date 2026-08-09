@@ -5,6 +5,7 @@ import { verifyJwt } from './auth';
 import authRoutes from './routes/auth';
 import meRoutes from './routes/me';
 import challengesRoutes from './routes/challenges';
+import chatRoutes from './routes/chat';
 
 type AppEnv = { Bindings: Env; Variables: { userId: string } };
 
@@ -35,8 +36,11 @@ app.use('/me', requireAuth);
 app.use('/me/*', requireAuth);
 app.use('/challenges', requireAuth);
 app.use('/challenges/*', requireAuth);
+app.use('/chat', requireAuth);
+app.use('/chat/*', requireAuth);
 
 app.route('/me', meRoutes);
 app.route('/challenges', challengesRoutes);
+app.route('/chat', chatRoutes);
 
 export default app;

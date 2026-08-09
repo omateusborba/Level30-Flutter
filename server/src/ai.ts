@@ -10,9 +10,9 @@ export interface RecommendationResult {
 
 // llama-3.1-8b-instruct (sem sufixo) foi descontinuado em 2026-05-30;
 // -fast é a variante atual recomendada pelo catálogo de modelos da Cloudflare.
-const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
+export const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
 
-const CATEGORY_LABEL: Record<string, string> = {
+export const CATEGORY_LABEL: Record<string, string> = {
   health: 'Saúde',
   study: 'Estudos',
   productivity: 'Produtividade',
