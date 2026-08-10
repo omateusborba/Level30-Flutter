@@ -13,6 +13,9 @@
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter" />
   <img src="https://img.shields.io/badge/Dart-3.3+-0175C2?logo=dart" />
   <img src="https://img.shields.io/badge/Android-5.0+-3DDC84?logo=android" />
+  <img src="https://img.shields.io/badge/iOS-13.0+-000000?logo=apple" />
+  <img src="https://img.shields.io/badge/Backend-Cloudflare%20Workers-F38020?logo=cloudflare" />
+  <img src="https://img.shields.io/badge/AI-Llama%203.1%20(Workers%20AI)-005BBB" />
   <img src="https://img.shields.io/badge/FIAP-Enterprise%20Challenge%202026-ED1C24" />
   <img src="https://img.shields.io/badge/License-MIT-green" />
 </p>
@@ -25,16 +28,31 @@
 
 O sistema **Smart HAS** (Smart Habit Acceleration System) combina:
 - **Motor de risco baseado em regras** — avalia cada desafio com score de 0,0 a 1,0 a partir de uma fórmula determinística (inatividade, progresso e streak) — ver nota abaixo
-- **Notificações inteligentes** — alertas contextuais agendados por horário e disparados por nível de risco
+- **Backend real na nuvem** — autenticação por conta (e-mail/senha), persistência de usuários e desafios em banco próprio, hospedado na Cloudflare (ver [Backend](#backend))
+- **Assistente de IA (chat + recomendações)** — companheiro de jornada dentro do app, com respostas geradas por modelo de linguagem hospedado na Cloudflare Workers AI
+- **Notificações inteligentes** — alertas contextuais agendados por horário e disparados por nível de risco, funcionando em Android e iOS
 - **Mapa de desafios** — visualização dos desafios em mapa dark com CartoDB/OpenStreetMap, posicionados ao redor da localização real do usuário
 - **Tour de onboarding** — guia interativo de 6 passos para novos usuários
+- **Foto de perfil** — captura por câmera ou galeria, com upload para o backend
 - **Integração com APIs reais** — clima em tempo real (Open-Meteo) e citações motivacionais (ZenQuotes)
 
-> Projeto desenvolvido para o **Enterprise Challenge 2026 — Fase 4 (FIAP)**, avaliado pela **Leroy Merlin**.
+> Projeto desenvolvido para o **Enterprise Challenge 2026 — Fase 4 (FIAP)**, avaliado pela **Leroy Merlin**. Multiplataforma: **Android e iOS**.
 
 ---
 
 ## Funcionalidades
+
+### Conta e Perfil
+- Cadastro e login reais por **e-mail e senha** (senha com hash + salt, sessão via **JWT**)
+- Sessão persistida no dispositivo com `flutter_secure_storage` — token não fica em texto puro
+- Foto de perfil via câmera ou galeria (`image_picker`), enviada para o backend e exibida com `cached_network_image`
+- Logout automático quando o token expira (interceptado nas chamadas à API)
+
+### Assistente de IA
+- **Chat** com o "Guia do Level30": tira dúvidas, dá dicas e conversa sobre o progresso do jogador, com respostas rápidas sugeridas
+- **Recomendação diária por desafio**: dica curta gerada por IA para cada desafio, combinada com o risco de abandono calculado pelo RiskEngine
+- Roda sobre **Cloudflare Workers AI** (modelo Llama 3.1 8B) — ver seção [Backend](#backend)
+- Se a IA falhar, o app não quebra: cai em uma sugestão padrão local (fallback), sinalizado na tela com o selo "Sugestão padrão"
 
 ### Gamificação
 - Sistema de XP com progressão de nível (500 XP por nível)
@@ -94,13 +112,14 @@ CRITICAL ≥ 0,75  → Sugestão de replanejamento
 | Tela | Descrição |
 |---|---|
 | **Splash** | Animação de entrada com logo e transição automática |
-| **Login** | Formulário com validação de nome |
+| **Login / Cadastro** | Autenticação real por e-mail e senha, com alternância entre entrar e criar conta |
 | **Home** | Dashboard com desafios, clima atual, citação motivacional e estatísticas |
 | **Criar Desafio** | Formulário com categorias, sliders de duração (7–90 dias) e XP (100–1000) |
-| **Detalhe do Desafio** | Grade 30 dias, streak, anel de progresso, recomendação do motor de risco e botão de concluir |
+| **Detalhe do Desafio** | Grade 30 dias, streak, anel de progresso, recomendação gerada por IA (com selo de origem) e botão de concluir |
+| **Chat (Guia do Level30)** | Conversa com o assistente de IA, com respostas rápidas sugeridas e histórico de contexto |
 | **Mapa** | Mapa dark com marcadores dos desafios e localização GPS |
-| **Perfil** | Nível, XP, estatísticas, marcos atingidos e botão de rever tour |
-| **Notificações** | Toggle, seletor de horário, notificação de teste e alertas de risco |
+| **Perfil** | Foto de perfil, nível, XP, estatísticas, marcos atingidos e botão de rever tour |
+| **Notificações** | Toggle, seletor de horário, notificação de teste e alertas de risco (Android e iOS) |
 
 ---
 
@@ -124,7 +143,8 @@ lib/
 │   │   ├── risk_assessment.dart   # Entidade RiskAssessment + SuggestedAction
 │   │   └── user_profile.dart      # Entidade UserProfile com cálculo de nível
 │   └── service/
-│       ├── notification_service.dart  # Singleton de notificações locais
+│       ├── api_client.dart            # Cliente HTTP da API Level30 (Cloudflare Worker)
+│       ├── notification_service.dart  # Singleton de notificações locais (Android + iOS)
 │       ├── onboarding_service.dart    # Estado do tour (SharedPreferences)
 │       ├── quote_service.dart         # ZenQuotes API + fallback local
 │       └── weather_service.dart       # Open-Meteo API
@@ -134,12 +154,13 @@ lib/
 │   │   └── risk_engine.dart       # Algoritmo de pontuação de risco
 │   └── provider/
 │       ├── challenge_provider.dart    # Estado dos desafios
+│       ├── chat_provider.dart         # Estado da conversa com o assistente de IA
 │       ├── notification_provider.dart # Estado das notificações + SharedPreferences
 │       ├── risk_provider.dart         # Wrapper do RiskEngine
-│       └── user_provider.dart         # Estado do usuário e XP
+│       └── user_provider.dart         # Sessão, dados do usuário, XP e token (secure storage)
 │
 └── presentation/                  # Camada de apresentação
-    ├── screens/                   # 8 telas
+    ├── screens/                   # 9 telas
     └── widgets/                   # Componentes reutilizáveis
         ├── challenge_card.dart
         ├── category_chip.dart
@@ -151,15 +172,44 @@ lib/
         └── xp_progress_ring.dart
 ```
 
+### Backend
+
+O app consome uma **API própria**, hospedada como **Cloudflare Worker** (pasta `server/`), substituindo o antigo armazenamento apenas local:
+
+```
+server/
+├── src/
+│   ├── index.ts              # Rotas, CORS e middleware de autenticação (JWT Bearer)
+│   ├── auth.ts                # Hash/verificação de senha e emissão/verificação de JWT
+│   ├── ai.ts                  # Integração com Workers AI (recomendação por desafio)
+│   ├── risk.ts                 # Motor de risco (mesma lógica do RiskEngine do app)
+│   └── routes/
+│       ├── auth.ts            # POST /auth/signup, POST /auth/login
+│       ├── me.ts               # GET /me, PUT /me/avatar (foto de perfil)
+│       ├── challenges.ts      # CRUD de desafios + GET /challenges/:id/recommendation
+│       └── chat.ts             # POST /chat (assistente de IA conversacional)
+└── migrations/                 # Schema do banco D1 (usuários, desafios, avatar)
+```
+
+| Camada | Tecnologia |
+|---|---|
+| Runtime | Cloudflare Workers (serverless, edge) |
+| Framework HTTP | Hono |
+| Banco de dados | Cloudflare D1 (SQLite na borda) |
+| Autenticação | E-mail/senha com hash + salt, sessão via JWT |
+| IA generativa | Cloudflare Workers AI — modelo `@cf/meta/llama-3.1-8b-instruct-fast` (Llama 3.1 8B) |
+
+Todas as rotas de dados (`/me`, `/challenges`, `/chat`) exigem `Authorization: Bearer <token>`. O app aponta para a API via `AppConfig.apiBaseUrl` (`lib/core/constants/app_config.dart`), configurável em build time com `--dart-define=API_BASE_URL=...`.
+
 ### Gerenciamento de Estado — Provider
 
 ```dart
 MultiProvider(
   providers: [
-    ChangeNotifierProvider(create: (_) => ChallengeProvider()..init()),
+    ChangeNotifierProvider(create: (_) => ChallengeProvider()),
     ChangeNotifierProvider(create: (_) => UserProvider()),
-    ChangeNotifierProvider(create: (_) => RiskProvider()),
     ChangeNotifierProvider(create: (_) => NotificationProvider()..init()),
+    ChangeNotifierProvider(create: (_) => ChatProvider()),
   ],
 )
 ```
@@ -191,6 +241,19 @@ UI (context.watch) → Provider → Engine/Service → notifyListeners() → UI 
 | Tour | showcaseview | ^3.0.0 |
 | UUID | uuid | ^4.5.1 |
 | Permissões | permission_handler | ^11.3.1 |
+| Sessão segura | flutter_secure_storage | ^11.0.0 |
+| Foto de perfil | image_picker | ^1.1.2 |
+| Cache de imagem | cached_network_image | ^3.4.1 |
+
+### Backend (`server/`)
+
+| Categoria | Tecnologia |
+|---|---|
+| Runtime | Cloudflare Workers |
+| Framework | Hono |
+| Banco de dados | Cloudflare D1 |
+| IA | Cloudflare Workers AI — Llama 3.1 8B Instruct (fast) |
+| Linguagem | TypeScript |
 
 ---
 
@@ -200,8 +263,8 @@ UI (context.watch) → Provider → Engine/Service → notifyListeners() → UI 
 
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) 3.x
 - Android Studio ou VS Code com extensão Flutter/Dart
-- Emulador Android (API 21+) ou dispositivo físico
-- Nenhuma chave de API necessária
+- Emulador Android (API 21+) ou simulador/dispositivo iOS (13.0+, requer Xcode e macOS)
+- Nenhuma chave de API própria necessária — o app já aponta para a API pública em produção (Cloudflare Workers)
 
 ### Instalação
 
@@ -213,15 +276,37 @@ cd Level30-Flutter
 # 2. Instale as dependências
 flutter pub get
 
-# 3. Rode no emulador ou dispositivo conectado
+# 3. (iOS) instale os pods
+cd ios && pod install && cd ..
+
+# 4. Rode no emulador/simulador ou dispositivo conectado
 flutter run
 ```
 
-### Build APK Release
+### Build APK Release (Android)
 
 ```bash
 flutter build apk --release
 # Saída: build/app/outputs/flutter-apk/app-release.apk (~53 MB)
+```
+
+### Build iOS
+
+```bash
+flutter build ios --release
+# Requer assinatura de código configurada no Xcode (ios/Runner.xcworkspace)
+```
+
+### Rodar o backend localmente (opcional)
+
+Por padrão o app usa a API já hospedada em produção. Para rodar o backend localmente:
+
+```bash
+cd server
+npm install
+npx wrangler dev
+# Depois, rode o app apontando para o backend local:
+flutter run --dart-define=API_BASE_URL=http://localhost:8787
 ```
 
 ### Rodar Testes
@@ -261,6 +346,35 @@ dependencies {
 
 ---
 
+## Configuração iOS
+
+Permissões declaradas no `ios/Runner/Info.plist` (necessárias para foto de perfil):
+
+```xml
+<key>NSPhotoLibraryUsageDescription</key>
+<string>O Level30 precisa acessar suas fotos para você escolher uma foto de perfil.</string>
+<key>NSCameraUsageDescription</key>
+<string>O Level30 precisa acessar a câmera para você tirar uma foto de perfil.</string>
+```
+
+**Deployment target**: iOS 13.0 (`ios/Podfile` e `ios/Runner.xcodeproj`).
+
+**Notificações em primeiro plano**: o iOS, por padrão, não exibe banner/som quando o app está aberto. Isso foi corrigido habilitando a apresentação padrão no `DarwinInitializationSettings`:
+
+```dart
+// lib/data/service/notification_service.dart
+const ios = DarwinInitializationSettings(
+  requestAlertPermission: true,
+  requestBadgePermission: true,
+  requestSoundPermission: true,
+  defaultPresentAlert: true,
+  defaultPresentBadge: true,
+  defaultPresentSound: true,
+);
+```
+
+---
+
 ## APIs Utilizadas
 
 ### Open-Meteo
@@ -277,16 +391,36 @@ Retorna `[{"q": "frase", "a": "autor"}]` → exibido na HomeScreen com fallback 
 
 Ambas as APIs são **gratuitas, sem autenticação** e com **fallback gracioso** — se a rede falhar, o app usa dados locais.
 
+### Level30 API (backend próprio)
+
+```
+https://level30-api.mateus-borba.workers.dev
+```
+
+| Rota | Método | Descrição | Autenticação |
+|---|---|---|---|
+| `/auth/signup` | POST | Cria conta (nome, e-mail, senha) | Não |
+| `/auth/login` | POST | Login, retorna JWT | Não |
+| `/me` | GET | Dados do usuário logado | Bearer JWT |
+| `/me/avatar` | PUT | Atualiza foto de perfil | Bearer JWT |
+| `/challenges` | GET/POST | Lista/cria desafios | Bearer JWT |
+| `/challenges/:id/recommendation` | GET | Dica gerada por IA para o desafio | Bearer JWT |
+| `/chat` | POST | Conversa com o assistente de IA | Bearer JWT |
+
+As rotas de IA (`/chat` e `/challenges/:id/recommendation`) usam **Cloudflare Workers AI** (modelo Llama 3.1 8B) e têm fallback para uma resposta padrão caso a IA falhe.
+
 ---
 
 ## Informações do App
 
 | Item | Valor |
 |---|---|
-| Package ID | `com.level30.level30flutter` |
+| Package ID (Android) | `com.level30.level30flutter` |
+| Bundle ID (iOS) | `com.level30.level30flutter` |
 | Versão | 1.0.0+1 |
 | Min SDK Android | API 21 (Android 5.0) |
 | Target SDK Android | API 34 (Android 14) |
+| iOS Deployment Target | iOS 13.0+ |
 | APK Release | ~52,9 MB |
 
 ---
