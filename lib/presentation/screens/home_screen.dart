@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/model/challenge.dart';
+import '../../data/model/risk_assessment.dart';
 import '../../data/service/api_client.dart';
 import '../../data/service/quote_service.dart';
 import '../../data/service/weather_service.dart';
@@ -103,8 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final up = context.watch<UserProvider>();
     final highRisk = cp.getHighestRisk();
     final highRiskId = highRisk?.challengeId;
-    final showMotivation =
-        highRisk != null && highRisk.riskScore > 0.5;
+    final showRiskAlert = highRisk != null && highRisk.riskScore > 0.5;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -148,30 +148,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Card clima
-                    if (_weatherLoaded)
-                      _WeatherCard(
-                        emoji: _weatherEmoji,
-                        description: _weatherDesc,
-                        recommendation: _weatherRec,
+                    // Alerta de risco — sinal de produto, acima da lista.
+                    if (showRiskAlert && highRiskId != null) ...[
+                      _RiskAlert(
+                        assessment: highRisk,
+                        title: cp.getById(highRiskId)?.title ?? 'Desafio',
+                        onTap: () => Navigator.pushNamed(context, '/challenge',
+                            arguments: highRiskId),
                       ),
-                    if (_weatherLoaded) const SizedBox(height: 12),
-
-                    // Card motivacional
-                    TourStep(
-                      globalKey: OnboardingTourKeys.motivCard,
-                      title: 'Motivação Diária',
-                      description: 'Uma frase inspiradora nova a cada visita, buscada em uma base de citações online.\nSempre um estímulo diferente para o seu dia.',
-                      child: MotivationCard(
-                        quote: _quote,
-                        highRisk: showMotivation ? highRisk : null,
-                        onViewChallenge: showMotivation && highRiskId != null
-                            ? () => Navigator.pushNamed(context, '/challenge',
-                                arguments: highRiskId)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Estatísticas rápidas
                     TourStep(
@@ -335,6 +321,32 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
             ),
+            // Clima + citação — enfeite, no rodapé.
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_weatherLoaded) ...[
+                      _WeatherCard(
+                        emoji: _weatherEmoji,
+                        description: _weatherDesc,
+                        recommendation: _weatherRec,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    TourStep(
+                      globalKey: OnboardingTourKeys.motivCard,
+                      title: 'Motivação Diária',
+                      description: 'Uma frase para dar um estímulo ao seu dia. Toque para expandir.',
+                      child: MotivationCard(quote: _quote),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // Espaço para o FAB não cobrir o último card.
             const SliverToBoxAdapter(child: SizedBox(height: 104)),
           ],
@@ -356,6 +368,73 @@ class _HomeScreenState extends State<HomeScreen> {
         title: 'Navegação Principal',
         description: 'Use a barra inferior para navegar entre Home, Mapa e Perfil.\nO mapa organiza seus desafios ao redor da sua localização atual.',
         child: const AppBottomNav(currentIndex: 0),
+      ),
+    );
+  }
+}
+
+class _RiskAlert extends StatelessWidget {
+  final RiskAssessment assessment;
+  final String title;
+  final VoidCallback onTap;
+
+  const _RiskAlert({
+    required this.assessment,
+    required this.title,
+    required this.onTap,
+  });
+
+  Color get _color => switch (assessment.riskLevel) {
+        RiskLevel.low => AppColors.riskLow,
+        RiskLevel.medium => AppColors.riskMedium,
+        RiskLevel.high => AppColors.riskHigh,
+        RiskLevel.critical => AppColors.riskCritical,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _color.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: _color, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '"$title" em risco ${assessment.riskLevel.label.toLowerCase()}',
+                    style: GoogleFonts.poppins(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    assessment.suggestedAction.message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      color: AppColors.textSecond,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, color: _color, size: 20),
+          ],
+        ),
       ),
     );
   }

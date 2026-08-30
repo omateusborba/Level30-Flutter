@@ -1,98 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
-import '../../data/model/risk_assessment.dart';
 
-class MotivationCard extends StatelessWidget {
+/// Citação do dia — enfeite, não sinal de produto. Compacta (2 linhas), toque
+/// para expandir. O alerta de risco saiu daqui para um card próprio.
+class MotivationCard extends StatefulWidget {
   final String quote;
-  final RiskAssessment? highRisk;
-  final VoidCallback? onViewChallenge;
 
-  const MotivationCard({
-    super.key,
-    required this.quote,
-    this.highRisk,
-    this.onViewChallenge,
-  });
+  const MotivationCard({super.key, required this.quote});
+
+  @override
+  State<MotivationCard> createState() => _MotivationCardState();
+}
+
+class _MotivationCardState extends State<MotivationCard> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withAlpha(179),
-            AppColors.surface,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accent.withAlpha(51)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('✨', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Text(
-                'Citação do Dia',
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('✨', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.quote,
+                maxLines: _expanded ? null : 2,
+                overflow: _expanded ? null : TextOverflow.ellipsis,
                 style: GoogleFonts.poppins(
-                  color: AppColors.accent,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecond,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  height: 1.5,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            quote,
-            style: GoogleFonts.poppins(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-              fontStyle: FontStyle.italic,
-              height: 1.5,
             ),
-          ),
-          if (highRisk != null) ...[
-            const SizedBox(height: 12),
-            const Divider(color: AppColors.primary),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Text('🤖', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    highRisk!.suggestedAction.message,
-                    style: GoogleFonts.poppins(
-                      color: AppColors.textSecond,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (onViewChallenge != null) ...[
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: onViewChallenge,
-                child: Text(
-                  'Ver desafio em risco →',
-                  style: GoogleFonts.poppins(
-                    color: AppColors.accent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
           ],
-        ],
+        ),
       ),
     );
   }
