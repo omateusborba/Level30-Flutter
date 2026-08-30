@@ -61,7 +61,7 @@ import { apiErrorMessage } from '../../core/http-error.util';
       </form>
 
       <p class="hint" style="color: var(--text-dim);">
-        Seed dev: admin&#64;level30.app / admin1234
+        Acesso restrito à coordenação do programa.
       </p>
     </div>
   `,
