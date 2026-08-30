@@ -49,13 +49,15 @@ class ChallengeDetailScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          // Header com cor da categoria
+          // Header: fundo do sistema (navy escuro), categoria só como acento.
           SliverAppBar(
-            expandedHeight: 180,
-            backgroundColor: catColor.withAlpha(179),
+            expandedHeight: 168,
+            pinned: true,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: Colors.transparent,
             actions: [
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Color(0xFFDE350B)),
+                icon: const Icon(Icons.delete_outline, color: AppColors.riskCritical),
                 tooltip: 'Excluir desafio',
                 onPressed: () async {
                   final confirmed = await showDeleteConfirmDialog(
@@ -72,7 +74,7 @@ class ChallengeDetailScreen extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('"${challenge.title}" excluído.'),
-                          backgroundColor: const Color(0xFF1A3A5C),
+                          backgroundColor: AppColors.surface2,
                         ),
                       );
                     } on ApiException catch (e) {
@@ -86,49 +88,44 @@ class ChallengeDetailScreen extends StatelessWidget {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
+              titlePadding: EdgeInsets.zero,
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [catColor.withAlpha(230), AppColors.background],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
+                color: AppColors.background,
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 56, 16, 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    padding: const EdgeInsets.fromLTRB(16, 44, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text(challenge.category.emoji,
-                            style: const TextStyle(fontSize: 48)),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                challenge.category.displayName.toUpperCase(),
-                                style: GoogleFonts.poppins(
-                                  color: catColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 2,
-                                ),
+                        Row(
+                          children: [
+                            Icon(challenge.category.icon, color: catColor, size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              challenge.category.displayName.toUpperCase(),
+                              style: GoogleFonts.poppins(
+                                color: catColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 2,
                               ),
-                              Text(
-                                challenge.title,
-                                style: GoogleFonts.poppins(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
+                            ),
+                            const Spacer(),
+                            RiskBadge(assessment: risk, showLabel: true),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          challenge.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            color: AppColors.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        RiskBadge(assessment: risk, showLabel: true),
                       ],
                     ),
                   ),

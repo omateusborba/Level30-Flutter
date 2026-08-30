@@ -19,6 +19,15 @@ extension ChallengeCategoryExt on ChallengeCategory {
     ChallengeCategory.fitness      => '💪',
   };
 
+  /// Ícone vetorial (cromo de interface — o emoji fica para conteúdo do usuário).
+  IconData get icon => switch (this) {
+    ChallengeCategory.health       => Icons.favorite_outline,
+    ChallengeCategory.study        => Icons.menu_book_outlined,
+    ChallengeCategory.productivity => Icons.bolt_outlined,
+    ChallengeCategory.mindfulness  => Icons.self_improvement_outlined,
+    ChallengeCategory.fitness      => Icons.fitness_center_outlined,
+  };
+
   // Paleta deliberadamente fora da faixa semáforo usada por AppColors.risk*
   // (verde/amarelo/laranja/vermelho), para não confundir categoria com risco.
   Color get color => switch (this) {
