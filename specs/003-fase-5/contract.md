@@ -79,8 +79,11 @@ Erros: `400` com `detalhes` por campo.
 
 ### `POST /challenges/{id}/complete` → `200`
 ```json
-{ "challenge": { <ChallengeResponse atualizado> }, "xpDelta": 10, "totalXp": 130 }
+{ "challenge": { <ChallengeResponse atualizado> }, "xpDelta": 10, "totalXp": 130,
+  "conquistas": [{ "id": "primeiro_passo", "nome": "Primeiro Passo",
+                   "descricao": "...", "desbloqueada": true }] }
 ```
+`conquistas` (F4) é **aditivo** — lista vazia quando nada foi desbloqueado.
 - `xpDelta = earnedXp(currentDay+1) - earnedXp(currentDay)`, `earnedXp = currentDay*xpReward/totalDays` (**divisão inteira**).
 - `streak`: última atividade = ontem → `+1`; ≥ 2 dias atrás ou nunca → `1`. **Pode diminuir.**
 - `lastActivityAt` passa a ser "agora".
@@ -128,6 +131,16 @@ Erros: `400` (vazia / > 1000) · `502` (gateway de IA indisponível — **sem fa
   "porNivelDeRisco": [{ "chave": "critical", "quantidade": 1 }, ...] }
 ```
 `desafiosEmRisco` = contagem de `riskLevel` HIGH ou CRITICAL.
+
+### F1 · Histórico (aditivo)
+
+- `GET /challenges/{id}/historico` → `[{ "dayNumber": 1, "completedOn": "2026-08-30", "note": null, "xpDelta": 10 }]`
+- `GET /me/atividade?desde=YYYY-MM-DD` → `[{ "data": "2026-08-30", "quantidade": 2 }]` (heatmap)
+
+### F4 · Conquistas (aditivo)
+
+- `GET /me/conquistas` → `[{ "id": "veterano", "nome": "Veterano", "descricao": "...", "desbloqueada": false }]` (catálogo de 8, com estado)
+- `conquistas` no corpo de `POST /challenges/{id}/complete` (ver acima).
 
 ### RBAC
 - USER em `/admin/**` → `403` (formato de erro padrão, `mensagem: "Acesso negado."`).
