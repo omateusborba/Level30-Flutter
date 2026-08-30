@@ -1,4 +1,3 @@
-target/
 data/
 *.log
 .git/
@@ -7,3 +6,6 @@ data/
 *.iml
 HELP.md
 README.md
+
+# NÃO ignorar target/: o Dockerfile.runtime copia o jar já construído de lá.
+# O Dockerfile multi-stage não usa target/ (builda dentro do container).
