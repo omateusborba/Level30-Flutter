@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:level30/data/model/challenge.dart';
+import 'package:level30/data/model/challenge_completion.dart';
 import 'package:level30/data/repository/challenge_repository.dart';
 import 'package:level30/data/service/api_client.dart';
 import 'package:level30/data/service/challenge_cache.dart';
@@ -70,6 +71,12 @@ class FakeChallengeRepository implements ChallengeRepository {
   @override
   Future<({String message, bool aiGenerated})> recommendation(String id) async =>
       (message: 'dica', aiGenerated: false);
+
+  @override
+  Future<List<ChallengeCompletion>> historico(String id) async => const [];
+
+  @override
+  Future<List<AtividadeDia>> atividade(DateTime desde) async => const [];
 }
 
 class FakeChallengeCache implements ChallengeCache {

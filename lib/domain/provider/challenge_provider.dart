@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../data/model/challenge.dart';
 import '../../data/model/risk_assessment.dart';
+import '../../data/model/challenge_completion.dart';
 import '../../data/repository/challenge_repository.dart';
 import '../../data/repository/challenge_repository_impl.dart';
 import '../../data/service/challenge_cache.dart';
@@ -122,6 +123,12 @@ class ChallengeProvider extends ChangeNotifier {
   /// para que nenhuma tela precise falar com o ApiClient direto (US-031).
   Future<({String message, bool aiGenerated})> getRecommendation(String id) =>
       _repository.recommendation(id);
+
+  Future<List<ChallengeCompletion>> getHistorico(String id) =>
+      _repository.historico(id);
+
+  Future<List<AtividadeDia>> getAtividade(DateTime desde) =>
+      _repository.atividade(desde);
 
   Challenge? getById(String id) {
     try {

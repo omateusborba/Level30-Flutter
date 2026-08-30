@@ -1,4 +1,5 @@
 import '../model/challenge.dart';
+import '../model/challenge_completion.dart';
 
 /// Contrato de acesso a dados de desafios. Os providers dependem desta
 /// abstração (não do ApiClient diretamente), o que torna a camada de
@@ -19,4 +20,10 @@ abstract class ChallengeRepository {
   Future<void> delete(String id);
 
   Future<({String message, bool aiGenerated})> recommendation(String id);
+
+  /// F1 · histórico de conclusões do desafio.
+  Future<List<ChallengeCompletion>> historico(String id);
+
+  /// F1 · conclusões por dia do usuário desde [desde] — alimenta o heatmap.
+  Future<List<AtividadeDia>> atividade(DateTime desde);
 }

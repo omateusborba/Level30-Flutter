@@ -1,4 +1,5 @@
 import '../model/challenge.dart';
+import '../model/challenge_completion.dart';
 import '../service/api_client.dart';
 import 'challenge_repository.dart';
 
@@ -58,6 +59,23 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
 
   @override
   Future<void> delete(String id) => _api.delete('/challenges/$id');
+
+  @override
+  Future<List<ChallengeCompletion>> historico(String id) async {
+    final res = await _api.get('/challenges/$id/historico') as List;
+    return res
+        .map((j) => ChallengeCompletion.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<List<AtividadeDia>> atividade(DateTime desde) async {
+    final d = desde.toIso8601String().split('T').first;
+    final res = await _api.get('/me/atividade?desde=$d') as List;
+    return res
+        .map((j) => AtividadeDia.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
 
   @override
   Future<({String message, bool aiGenerated})> recommendation(String id) async {

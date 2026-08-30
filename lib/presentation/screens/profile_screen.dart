@@ -7,11 +7,13 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/string_extensions.dart';
 import '../../data/model/challenge.dart';
+import '../../data/model/challenge_completion.dart';
 import '../../data/model/user_profile.dart';
 import '../../data/service/api_client.dart';
 import '../../data/service/onboarding_service.dart';
 import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/user_provider.dart';
+import '../widgets/activity_heatmap.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/stat_tile.dart';
 import '../widgets/xp_progress_ring.dart';
@@ -66,6 +68,10 @@ class ProfileScreen extends StatelessWidget {
 
             // Stats
             _StatsGrid(cp: cp, profile: profile),
+            const SizedBox(height: 24),
+
+            // Heatmap de atividade (F1)
+            const _ActivitySection(),
             const SizedBox(height: 24),
 
             // Marcos
@@ -353,6 +359,60 @@ class _LogoutTile extends StatelessWidget {
       title: const Text('Sair da conta',
           style: TextStyle(color: AppColors.riskCritical)),
       onTap: () => _confirm(context),
+    );
+  }
+}
+
+class _ActivitySection extends StatefulWidget {
+  const _ActivitySection();
+
+  @override
+  State<_ActivitySection> createState() => _ActivitySectionState();
+}
+
+class _ActivitySectionState extends State<_ActivitySection> {
+  List<AtividadeDia>? _atividade;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final desde = DateTime.now().subtract(const Duration(days: 84));
+      final res = await context.read<ChallengeProvider>().getAtividade(desde);
+      if (mounted) setState(() => _atividade = res);
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: _failed
+          ? const Text('Não foi possível carregar a atividade.',
+              style: TextStyle(color: AppColors.textSecond, fontSize: 12))
+          : _atividade == null
+              ? const Center(
+                  child: SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.accent),
+                  ),
+                )
+              : ActivityHeatmap(atividade: _atividade!),
     );
   }
 }
