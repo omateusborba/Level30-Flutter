@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/extensions/string_extensions.dart';
 import '../../data/model/challenge.dart';
+import '../../data/model/achievement.dart';
 import '../../data/model/challenge_completion.dart';
 import '../../data/model/user_profile.dart';
 import '../../data/service/api_client.dart';
@@ -72,6 +73,10 @@ class ProfileScreen extends StatelessWidget {
 
             // Heatmap de atividade (F1)
             const _ActivitySection(),
+            const SizedBox(height: 24),
+
+            // Conquistas (F4)
+            const _ConquistasSection(),
             const SizedBox(height: 24),
 
             // Marcos
@@ -413,6 +418,108 @@ class _ActivitySectionState extends State<_ActivitySection> {
                   ),
                 )
               : ActivityHeatmap(atividade: _atividade!),
+    );
+  }
+}
+
+class _ConquistasSection extends StatefulWidget {
+  const _ConquistasSection();
+
+  @override
+  State<_ConquistasSection> createState() => _ConquistasSectionState();
+}
+
+class _ConquistasSectionState extends State<_ConquistasSection> {
+  List<Achievement>? _conquistas;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final res = await context.read<ChallengeProvider>().getConquistas();
+      if (mounted) setState(() => _conquistas = res);
+    } catch (_) {
+      if (mounted) setState(() => _conquistas = const []);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = _conquistas;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Conquistas',
+            style: GoogleFonts.poppins(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        if (list == null)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.accent)),
+            ),
+          )
+        else
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.82,
+            children: [for (final a in list) _ConquistaTile(a)],
+          ),
+      ],
+    );
+  }
+}
+
+class _ConquistaTile extends StatelessWidget {
+  final Achievement a;
+  const _ConquistaTile(this.a);
+
+  @override
+  Widget build(BuildContext context) {
+    final on = a.desbloqueada;
+    return Tooltip(
+      message: '${a.nome}\n${a.descricao}',
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: on ? AppColors.accent.withValues(alpha: 0.5) : AppColors.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(a.icon,
+                size: 22,
+                color: on ? AppColors.accent : AppColors.textSecond.withValues(alpha: 0.4)),
+            const SizedBox(height: 6),
+            Text(a.nome,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: on ? AppColors.textPrimary : AppColors.textSecond,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:level30/data/model/challenge.dart';
+import 'package:level30/data/model/achievement.dart';
 import 'package:level30/data/model/challenge_completion.dart';
 import 'package:level30/data/repository/challenge_repository.dart';
 import 'package:level30/data/service/api_client.dart';
@@ -56,11 +57,11 @@ class FakeChallengeRepository implements ChallengeRepository {
   }
 
   @override
-  Future<({Challenge challenge, int xpDelta, int totalXp})> completeDay(
-      String id) async {
+  Future<({Challenge challenge, int xpDelta, int totalXp, List<Achievement> conquistas})>
+      completeDay(String id) async {
     if (completeException != null) throw completeException!;
     final c = remote.firstWhere((e) => e.id == id);
-    return (challenge: c, xpDelta: 10, totalXp: 110);
+    return (challenge: c, xpDelta: 10, totalXp: 110, conquistas: <Achievement>[]);
   }
 
   @override
@@ -77,6 +78,9 @@ class FakeChallengeRepository implements ChallengeRepository {
 
   @override
   Future<List<AtividadeDia>> atividade(DateTime desde) async => const [];
+
+  @override
+  Future<List<Achievement>> conquistas() async => const [];
 }
 
 class FakeChallengeCache implements ChallengeCache {

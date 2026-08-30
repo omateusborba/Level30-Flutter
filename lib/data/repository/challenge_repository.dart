@@ -1,4 +1,5 @@
 import '../model/challenge.dart';
+import '../model/achievement.dart';
 import '../model/challenge_completion.dart';
 
 /// Contrato de acesso a dados de desafios. Os providers dependem desta
@@ -15,7 +16,8 @@ abstract class ChallengeRepository {
     required int totalDays,
   });
 
-  Future<({Challenge challenge, int xpDelta, int totalXp})> completeDay(String id);
+  Future<({Challenge challenge, int xpDelta, int totalXp, List<Achievement> conquistas})>
+      completeDay(String id);
 
   Future<void> delete(String id);
 
@@ -26,4 +28,7 @@ abstract class ChallengeRepository {
 
   /// F1 · conclusões por dia do usuário desde [desde] — alimenta o heatmap.
   Future<List<AtividadeDia>> atividade(DateTime desde);
+
+  /// F4 · catálogo de conquistas com estado de desbloqueio.
+  Future<List<Achievement>> conquistas();
 }

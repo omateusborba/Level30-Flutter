@@ -1,4 +1,5 @@
 import '../model/challenge.dart';
+import '../model/achievement.dart';
 import '../model/challenge_completion.dart';
 import '../service/api_client.dart';
 import 'challenge_repository.dart';
@@ -46,14 +47,18 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
   }
 
   @override
-  Future<({Challenge challenge, int xpDelta, int totalXp})> completeDay(
-      String id) async {
+  Future<({Challenge challenge, int xpDelta, int totalXp, List<Achievement> conquistas})>
+      completeDay(String id) async {
     final res =
         await _api.post('/challenges/$id/complete') as Map<String, dynamic>;
+    final conquistas = (res['conquistas'] as List? ?? [])
+        .map((j) => Achievement.fromJson(j as Map<String, dynamic>))
+        .toList();
     return (
       challenge: Challenge.fromJson(res['challenge'] as Map<String, dynamic>),
       xpDelta: res['xpDelta'] as int,
       totalXp: res['totalXp'] as int,
+      conquistas: conquistas,
     );
   }
 
@@ -65,6 +70,14 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
     final res = await _api.get('/challenges/$id/historico') as List;
     return res
         .map((j) => ChallengeCompletion.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<List<Achievement>> conquistas() async {
+    final res = await _api.get('/me/conquistas') as List;
+    return res
+        .map((j) => Achievement.fromJson(j as Map<String, dynamic>))
         .toList();
   }
 

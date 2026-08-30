@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../data/model/challenge.dart';
 import '../../data/model/risk_assessment.dart';
+import '../../data/model/achievement.dart';
 import '../../data/model/challenge_completion.dart';
 import '../../data/repository/challenge_repository.dart';
 import '../../data/repository/challenge_repository_impl.dart';
@@ -103,13 +104,18 @@ class ChallengeProvider extends ChangeNotifier {
   /// Completa o dia de hoje via API; retorna o delta de XP e o total
   /// confirmado pelo servidor. Propaga ApiException (ex.: 409 quando o
   /// dia já foi concluído hoje) para a UI tratar.
-  Future<({int xpDelta, int totalXp})> completeDay(String id) async {
+  Future<({int xpDelta, int totalXp, List<Achievement> conquistas})> completeDay(
+      String id) async {
     final res = await _repository.completeDay(id);
     final idx = _challenges.indexWhere((c) => c.id == id);
     if (idx != -1) _challenges[idx] = res.challenge;
     await _cache.save(_challenges);
     notifyListeners();
-    return (xpDelta: res.xpDelta, totalXp: res.totalXp);
+    return (
+      xpDelta: res.xpDelta,
+      totalXp: res.totalXp,
+      conquistas: res.conquistas
+    );
   }
 
   Future<void> deleteChallenge(String id) async {
@@ -129,6 +135,8 @@ class ChallengeProvider extends ChangeNotifier {
 
   Future<List<AtividadeDia>> getAtividade(DateTime desde) =>
       _repository.atividade(desde);
+
+  Future<List<Achievement>> getConquistas() => _repository.conquistas();
 
   Challenge? getById(String id) {
     try {

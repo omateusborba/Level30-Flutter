@@ -8,6 +8,7 @@ import '../../data/service/api_client.dart';
 import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/notification_provider.dart';
 import '../../domain/provider/user_provider.dart';
+import '../widgets/achievement_celebration.dart';
 import '../widgets/delete_confirm_dialog.dart';
 import '../widgets/risk_badge.dart';
 import '../widgets/stat_tile.dart';
@@ -241,10 +242,15 @@ class ChallengeDetailScreen extends StatelessWidget {
                             }
 
                             if (!context.mounted) return;
+                            if (result.conquistas.isNotEmpty) {
+                              await showAchievementCelebration(
+                                  context, result.conquistas);
+                              if (!context.mounted) return;
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                    '✅ Dia ${updated.currentDay} concluído! +${result.xpDelta} XP'),
+                                    'Dia ${updated.currentDay} concluído · +${result.xpDelta} XP'),
                                 backgroundColor: AppColors.riskLow,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
