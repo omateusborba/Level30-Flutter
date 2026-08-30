@@ -335,7 +335,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+            // Espaço para o FAB não cobrir o último card.
+            const SliverToBoxAdapter(child: SizedBox(height: 104)),
           ],
         ),
       ),
