@@ -264,14 +264,27 @@ class _MapScreenState extends State<MapScreen> {
               initialZoom: 13,
             ),
             children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                userAgentPackageName: 'com.level30.level30flutter',
+              // OpenStreetMap (sem chave). Dark map aplicado localmente: inversão
+              // de luminância -> áreas claras ficam escuras, mantendo o contraste
+              // dos marcadores coloridos por cima.
+              ColorFiltered(
+                colorFilter: const ColorFilter.matrix(<double>[
+                  -0.2126, -0.7152, -0.0722, 0, 255, //
+                  -0.2126, -0.7152, -0.0722, 0, 255, //
+                  -0.2126, -0.7152, -0.0722, 0, 255, //
+                  0, 0, 0, 1, 0, //
+                ]),
+                child: TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.level30.level30flutter',
+                  maxNativeZoom: 19,
+                ),
               ),
               CircleLayer(circles: _circles),
               MarkerLayer(markers: _markers),
+              const SimpleAttributionWidget(
+                source: Text('OpenStreetMap contributors'),
+              ),
             ],
           ),
           Positioned(
