@@ -113,4 +113,57 @@ void main() {
       expect(engine.assess(c).riskScore, greaterThan(0.5));
     });
   });
+
+  // Fronteiras exatas entre níveis: <0.25 low · <0.50 medium · <0.75 high · resto critical.
+  group('RiskEngine — fronteiras de score', () {
+    test('score na fronteira 0.25 cai em medium (limite inclusivo por baixo)', () {
+      // f_inatividade 0.0 (ativo hoje) + f_progresso 0.25 (dia 5/30) + f_streak 0.0 (streak 10)
+      final c = Challenge(
+        id: 'b25',
+        title: 'T',
+        category: ChallengeCategory.study,
+        description: '',
+        xpReward: 100,
+        streak: 10,
+        currentDay: 5,
+        lastActivityAt: DateTime.now(),
+      );
+      final a = engine.assess(c);
+      expect(a.riskScore, closeTo(0.25, 0.001));
+      expect(a.riskLevel, RiskLevel.medium);
+    });
+
+    test('score na fronteira 0.50 cai em high', () {
+      // f_inatividade 0.0 + f_progresso 0.20 (dia 10/30) + f_streak 0.30 (streak 0)
+      final c = Challenge(
+        id: 'b50',
+        title: 'T',
+        category: ChallengeCategory.study,
+        description: '',
+        xpReward: 100,
+        streak: 0,
+        currentDay: 10,
+        lastActivityAt: DateTime.now(),
+      );
+      final a = engine.assess(c);
+      expect(a.riskScore, closeTo(0.50, 0.001));
+      expect(a.riskLevel, RiskLevel.high);
+    });
+
+    test('score na fronteira 0.75 cai em critical', () {
+      // f_inatividade 0.25 (sem atividade + streak 0) + f_progresso 0.20 + f_streak 0.30
+      const c = Challenge(
+        id: 'b75',
+        title: 'T',
+        category: ChallengeCategory.study,
+        description: '',
+        xpReward: 100,
+        streak: 0,
+        currentDay: 10,
+      );
+      final a = engine.assess(c);
+      expect(a.riskScore, closeTo(0.75, 0.001));
+      expect(a.riskLevel, RiskLevel.critical);
+    });
+  });
 }

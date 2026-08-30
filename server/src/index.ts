@@ -6,18 +6,33 @@ import authRoutes from './routes/auth';
 import meRoutes from './routes/me';
 import challengesRoutes from './routes/challenges';
 import chatRoutes from './routes/chat';
+import internalRoutes from './routes/internal';
 
 type AppEnv = { Bindings: Env; Variables: { userId: string } };
 
 const app = new Hono<AppEnv>();
 
-// Projeto acadêmico, sem dados sensíveis de terceiros — CORS aberto simplifica
-// testes via navegador/Flutter Web além do app mobile nativo.
-app.use('*', cors({ origin: '*', allowHeaders: ['Content-Type', 'Authorization'] }));
+// Projeto acadêmico, sem dados sensíveis de terceiros — CORS aberto simplifica testes.
+app.use('*', cors({ origin: '*', allowHeaders: ['Content-Type', 'Authorization', 'X-Service-Token'] }));
 
-app.get('/', (c) => c.json({ name: 'level30-api', status: 'ok' }));
+app.get('/', (c) => c.json({ name: 'level30-ai-gateway', status: 'ok' }));
 
-app.route('/auth', authRoutes);
+// ─── Gateway de IA para a API Spring Boot (Fase 5) ──────────────────────────
+// Único papel do Worker agora. Autenticado por X-Service-Token, não usa D1.
+app.route('/internal', internalRoutes);
+
+// ─── Rotas legadas (backend antigo em D1) ──────────────────────────────────
+// Na Fase 5 o backend é o Spring Boot (Postgres). Estas rotas só respondem se
+// houver um binding D1; sem ele, devolvem 503 explicando — sem quebrar o Worker.
+async function requireDb(c: Context<AppEnv>, next: Next) {
+  if (!c.env.DB) {
+    return c.json(
+      { error: 'Rota legada desativada. Use a API Spring Boot (Fase 5).' },
+      503,
+    );
+  }
+  await next();
+}
 
 async function requireAuth(c: Context<AppEnv>, next: Next) {
   const header = c.req.header('Authorization');
@@ -31,14 +46,15 @@ async function requireAuth(c: Context<AppEnv>, next: Next) {
   await next();
 }
 
-// Todo endpoint abaixo exige Authorization: Bearer <token>
-app.use('/me', requireAuth);
-app.use('/me/*', requireAuth);
-app.use('/challenges', requireAuth);
-app.use('/challenges/*', requireAuth);
-app.use('/chat', requireAuth);
-app.use('/chat/*', requireAuth);
+app.use('/auth/*', requireDb);
+app.use('/me', requireDb, requireAuth);
+app.use('/me/*', requireDb, requireAuth);
+app.use('/challenges', requireDb, requireAuth);
+app.use('/challenges/*', requireDb, requireAuth);
+app.use('/chat', requireDb, requireAuth);
+app.use('/chat/*', requireDb, requireAuth);
 
+app.route('/auth', authRoutes);
 app.route('/me', meRoutes);
 app.route('/challenges', challengesRoutes);
 app.route('/chat', chatRoutes);

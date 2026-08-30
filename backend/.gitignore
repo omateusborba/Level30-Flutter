@@ -1,0 +1,9 @@
+target/
+data/
+*.log
+.mvn/
+!.mvn/wrapper/maven-wrapper.properties
+.idea/
+*.iml
+.vscode/
+HELP.md

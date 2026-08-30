@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: level30-api
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/level30;AUTO_SERVER=TRUE}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${PORT:8080}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+app:
+  jwt:
+    # openssl rand -hex 32  — NUNCA versionar o valor real
+    secret: ${JWT_SECRET:dev-only-insecure-secret-please-change-me-0000000000}
+    access-ttl-seconds: 3600
+    refresh-ttl-seconds: 2592000
+  ai:
+    worker-url: ${AI_WORKER_URL:}
+    service-token: ${AI_SERVICE_TOKEN:}
+    timeout-seconds: 15
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:4200}
+  seed:
+    enabled: ${SEED_ENABLED:true}
+    admin-email: ${SEED_ADMIN_EMAIL:admin@level30.app}
+    admin-password: ${SEED_ADMIN_PASSWORD:admin1234}
+
+logging:
+  level:
+    com.level30.api: INFO

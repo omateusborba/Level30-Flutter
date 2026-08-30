@@ -250,8 +250,16 @@ class ChallengeDetailScreen extends StatelessWidget {
                             );
                           } on ApiException catch (e) {
                             if (!context.mounted) return;
+                            final isAlreadyDone = e.statusCode == 409;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.message)),
+                              SnackBar(
+                                content: Text(isAlreadyDone
+                                    ? 'Você já concluiu este desafio hoje.'
+                                    : e.message),
+                                backgroundColor: isAlreadyDone
+                                    ? AppColors.riskMedium
+                                    : null,
+                              ),
                             );
                           }
                         },
@@ -348,12 +356,13 @@ class _RecommendationCardState extends State<_RecommendationCard> {
 
   Future<void> _load() async {
     try {
-      final res = await ApiClient.instance
-          .get('/challenges/${widget.challengeId}/recommendation') as Map<String, dynamic>;
+      final res = await context
+          .read<ChallengeProvider>()
+          .getRecommendation(widget.challengeId);
       if (!mounted) return;
       setState(() {
-        _message = res['message'] as String;
-        _aiGenerated = res['aiGenerated'] as bool;
+        _message = res.message;
+        _aiGenerated = res.aiGenerated;
         _loading = false;
       });
     } catch (_) {

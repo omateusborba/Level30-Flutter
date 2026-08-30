@@ -1,0 +1,40 @@
+# Perfil de producao (Opcao C — VM Oracle Cloud + docker compose).
+# Ativar com SPRING_PROFILES_ACTIVE=prod
+#
+# Postgres roda como container na MESMA rede docker do backend, entao a conexao
+# e interna (sem SSL). Todos os segredos vem de variaveis de ambiente.
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/level30}
+    username: ${DB_USER:level30}
+    password: ${DB_PASSWORD:level30}
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+  forward-headers-strategy: framework   # respeita X-Forwarded-* do Cloudflare Tunnel
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.level30.api: INFO
+    org.hibernate.SQL: WARN
