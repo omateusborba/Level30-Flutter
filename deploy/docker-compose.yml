@@ -2,6 +2,9 @@
 # exposto via Cloudflare Tunnel. Angular vai no Cloudflare Pages (fora daqui).
 #
 #   cp .env.example .env   &&   editar .env
+#   # copie o jar já construído (não se builda Maven numa VM de 1 GB):
+#   #   no Mac:  cd backend && JAVA_HOME=... mvn -q clean package -DskipTests
+#   #   scp backend/target/level30-api-*.jar ubuntu@IP:~/Level30-Flutter/backend/target/
 #   docker compose up -d --build
 #
 # Ver specs/003-fase-5/deploy-oracle.md para o passo a passo completo.
@@ -10,6 +13,14 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - shared_buffers=48MB
+      - -c
+      - max_connections=20
+      - -c
+      - effective_cache_size=128MB
     environment:
       POSTGRES_DB: ${DB_NAME:-level30}
       POSTGRES_USER: ${DB_USER:-level30}
@@ -21,12 +32,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 256m
     networks: [level30]
 
   api:
     build:
       context: ../backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.runtime
     image: level30-api:latest
     restart: unless-stopped
     depends_on:
@@ -34,6 +46,8 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # heap contida — VM Always Free AMD tem só ~1 GB
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx320m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-level30}
       DB_USER: ${DB_USER:-level30}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -42,11 +56,11 @@ services:
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@level30.app}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?defina SEED_ADMIN_PASSWORD no .env}
       SEED_ENABLED: ${SEED_ENABLED:-true}
-      # IA generativa (opcional). Vazio = modo fallback determinístico.
       AI_WORKER_URL: ${AI_WORKER_URL:-}
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
     expose:
       - "8080"
+    mem_limit: 560m
     networks: [level30]
 
   cloudflared:
@@ -57,6 +71,7 @@ services:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?defina TUNNEL_TOKEN no .env (token do tunnel criado no painel Cloudflare)}
     depends_on:
       - api
+    mem_limit: 96m
     networks: [level30]
 
 volumes:

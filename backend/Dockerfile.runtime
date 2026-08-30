@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1
+# Runtime-only: espera um jar JÁ construído em target/ (evita rodar Maven na VM,
+# essencial em VM pequena — 1 GB RAM). Build local:  mvn -q clean package -DskipTests
+# depois copie o jar para a VM ou use deploy/ship.sh.
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -r -u 1001 spring
+COPY target/level30-api-*.jar app.jar
+USER spring
+EXPOSE 8080
+ENV SPRING_PROFILES_ACTIVE=prod
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
+  CMD ["sh","-c","curl -fsS http://localhost:8080/actuator/health || exit 1"]
+ENTRYPOINT ["java","-jar","app.jar"]
