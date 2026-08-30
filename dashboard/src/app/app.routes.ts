@@ -9,10 +9,33 @@ export const routes: Routes = [
       import('./features/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'sem-acesso',
+    loadComponent: () =>
+      import('./features/sem-acesso/sem-acesso.component').then((m) => m.SemAcessoComponent),
+  },
+  {
     path: 'home',
     canActivate: [adminGuard],
     loadComponent: () =>
       import('./features/home/home.component').then((m) => m.HomeComponent),
+  },
+  {
+    path: 'dashboards/engajamento',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/dashboards/engajamento.component').then((m) => m.EngajamentoComponent),
+  },
+  {
+    path: 'dashboards/risco',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/dashboards/risco.component').then((m) => m.RiscoComponent),
+  },
+  {
+    path: 'dashboards/gamificacao',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/dashboards/gamificacao.component').then((m) => m.GamificacaoComponent),
   },
   {
     path: 'admin',

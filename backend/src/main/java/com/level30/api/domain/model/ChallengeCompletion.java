@@ -55,6 +55,11 @@ public class ChallengeCompletion {
 
     public static ChallengeCompletion of(Challenge challenge, int dayNumber,
                                          LocalDate completedOn, int xpDelta) {
+        return of(challenge, dayNumber, completedOn, xpDelta, null);
+    }
+
+    public static ChallengeCompletion of(Challenge challenge, int dayNumber,
+                                         LocalDate completedOn, int xpDelta, String note) {
         ChallengeCompletion e = new ChallengeCompletion();
         e.id = UUID.randomUUID();
         e.challenge = challenge;
@@ -62,6 +67,7 @@ public class ChallengeCompletion {
         e.dayNumber = dayNumber;
         e.completedOn = completedOn;
         e.xpDelta = xpDelta;
+        e.note = (note == null || note.isBlank()) ? null : note.trim();
         e.createdAt = Instant.now();
         return e;
     }

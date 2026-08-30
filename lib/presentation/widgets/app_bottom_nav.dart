@@ -25,8 +25,7 @@ class AppBottomNav extends StatelessWidget {
       items: const [
         BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined), label: 'Início'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined), label: 'Mapa'),
+        BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Mapa'),
         BottomNavigationBarItem(
             icon: Icon(Icons.person_outline), label: 'Perfil'),
       ],

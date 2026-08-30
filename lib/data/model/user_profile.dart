@@ -11,23 +11,24 @@ class UserProfile {
   int get xpToNextLevel => 500 - xpInLevel;
 
   String get rankTitle => switch (level) {
-    1 => 'Iniciante',
-    2 => 'Aprendiz',
-    3 => 'Intermediário',
-    4 => 'Avançado',
-    5 => 'Especialista',
-    _ => 'Lendário',
-  };
+        1 => 'Iniciante',
+        2 => 'Aprendiz',
+        3 => 'Intermediário',
+        4 => 'Avançado',
+        5 => 'Especialista',
+        _ => 'Lendário',
+      };
 
-  UserProfile copyWith({String? name, int? totalXp, String? avatar}) => UserProfile(
-    name: name ?? this.name,
-    totalXp: totalXp ?? this.totalXp,
-    avatar: avatar ?? this.avatar,
-  );
+  UserProfile copyWith({String? name, int? totalXp, String? avatar}) =>
+      UserProfile(
+        name: name ?? this.name,
+        totalXp: totalXp ?? this.totalXp,
+        avatar: avatar ?? this.avatar,
+      );
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    name: json['name'] as String,
-    totalXp: json['totalXp'] as int,
-    avatar: json['avatar'] as String?,
-  );
+        name: json['name'] as String,
+        totalXp: json['totalXp'] as int,
+        avatar: json['avatar'] as String?,
+      );
 }

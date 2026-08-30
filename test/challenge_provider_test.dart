@@ -57,11 +57,21 @@ class FakeChallengeRepository implements ChallengeRepository {
   }
 
   @override
-  Future<({Challenge challenge, int xpDelta, int totalXp, List<Achievement> conquistas})>
-      completeDay(String id) async {
+  Future<
+      ({
+        Challenge challenge,
+        int xpDelta,
+        int totalXp,
+        List<Achievement> conquistas
+      })> completeDay(String id, {String? note}) async {
     if (completeException != null) throw completeException!;
     final c = remote.firstWhere((e) => e.id == id);
-    return (challenge: c, xpDelta: 10, totalXp: 110, conquistas: <Achievement>[]);
+    return (
+      challenge: c,
+      xpDelta: 10,
+      totalXp: 110,
+      conquistas: <Achievement>[]
+    );
   }
 
   @override
@@ -70,7 +80,8 @@ class FakeChallengeRepository implements ChallengeRepository {
   }
 
   @override
-  Future<({String message, bool aiGenerated})> recommendation(String id) async =>
+  Future<({String message, bool aiGenerated})> recommendation(
+          String id) async =>
       (message: 'dica', aiGenerated: false);
 
   @override
@@ -81,6 +92,47 @@ class FakeChallengeRepository implements ChallengeRepository {
 
   @override
   Future<List<Achievement>> conquistas() async => const [];
+
+  @override
+  Future<ReplanSugestao> replanSugestao(String id) async =>
+      const ReplanSugestao(
+        totalDaysAtual: 30,
+        currentDay: 5,
+        sugestaoDias: 44,
+        minDias: 7,
+        maxDias: 90,
+        replanejamentosRestantes: 2,
+        mensagem: 'sem pressa',
+        aiGenerated: false,
+      );
+
+  @override
+  Future<Challenge> replanejar(String id, int totalDays) async {
+    final c = remote.firstWhere((e) => e.id == id);
+    return Challenge(
+      id: c.id,
+      title: c.title,
+      category: c.category,
+      description: c.description,
+      totalDays: totalDays,
+      currentDay: c.currentDay,
+      xpReward: c.xpReward,
+      streak: c.streak,
+      replanCount: c.replanCount + 1,
+    );
+  }
+
+  @override
+  Future<List<ProgramChallenge>> programa() async => const [];
+
+  @override
+  Future<Challenge> adotarPrograma(String programId) async => Challenge(
+        id: 'adopted-$programId',
+        title: 'Modelo',
+        category: ChallengeCategory.study,
+        description: 'd',
+        xpReward: 300,
+      );
 }
 
 class FakeChallengeCache implements ChallengeCache {
@@ -168,8 +220,8 @@ void main() {
 
       expect(
         () => provider.completeDay('a'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 409)),
+        throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'statusCode', 409)),
       );
     });
 

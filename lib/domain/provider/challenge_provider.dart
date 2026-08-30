@@ -104,9 +104,9 @@ class ChallengeProvider extends ChangeNotifier {
   /// Completa o dia de hoje via API; retorna o delta de XP e o total
   /// confirmado pelo servidor. Propaga ApiException (ex.: 409 quando o
   /// dia já foi concluído hoje) para a UI tratar.
-  Future<({int xpDelta, int totalXp, List<Achievement> conquistas})> completeDay(
-      String id) async {
-    final res = await _repository.completeDay(id);
+  Future<({int xpDelta, int totalXp, List<Achievement> conquistas})>
+      completeDay(String id, {String? note}) async {
+    final res = await _repository.completeDay(id, note: note);
     final idx = _challenges.indexWhere((c) => c.id == id);
     if (idx != -1) _challenges[idx] = res.challenge;
     await _cache.save(_challenges);
@@ -137,6 +137,30 @@ class ChallengeProvider extends ChangeNotifier {
       _repository.atividade(desde);
 
   Future<List<Achievement>> getConquistas() => _repository.conquistas();
+
+  /// C2 · sugestão de replanejamento (não muta nada).
+  Future<ReplanSugestao> getReplanSugestao(String id) =>
+      _repository.replanSugestao(id);
+
+  /// C2 · aplica a nova duração e atualiza o desafio local + cache.
+  Future<void> replanejar(String id, int totalDays) async {
+    final atualizado = await _repository.replanejar(id, totalDays);
+    final idx = _challenges.indexWhere((c) => c.id == id);
+    if (idx != -1) _challenges[idx] = atualizado;
+    await _cache.save(_challenges);
+    notifyListeners();
+  }
+
+  /// C3 · modelos de desafio do programa.
+  Future<List<ProgramChallenge>> getPrograma() => _repository.programa();
+
+  /// C3 · adota um modelo e adiciona o desafio pessoal à lista + cache.
+  Future<void> adotarPrograma(String programId) async {
+    final criado = await _repository.adotarPrograma(programId);
+    _challenges.insert(0, criado);
+    await _cache.save(_challenges);
+    notifyListeners();
+  }
 
   Challenge? getById(String id) {
     try {

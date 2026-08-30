@@ -9,7 +9,9 @@ import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/notification_provider.dart';
 import '../../domain/provider/user_provider.dart';
 import '../widgets/achievement_celebration.dart';
+import '../widgets/complete_note_sheet.dart';
 import '../widgets/delete_confirm_dialog.dart';
+import '../widgets/replan_sheet.dart';
 import '../widgets/risk_badge.dart';
 import '../widgets/stat_tile.dart';
 import '../widgets/xp_progress_ring.dart';
@@ -59,7 +61,8 @@ class ChallengeDetailScreen extends StatelessWidget {
             surfaceTintColor: Colors.transparent,
             actions: [
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.riskCritical),
+                icon: const Icon(Icons.delete_outline,
+                    color: AppColors.riskCritical),
                 tooltip: 'Excluir desafio',
                 onPressed: () async {
                   final confirmed = await showDeleteConfirmDialog(
@@ -102,7 +105,8 @@ class ChallengeDetailScreen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(challenge.category.icon, color: catColor, size: 18),
+                            Icon(challenge.category.icon,
+                                color: catColor, size: 18),
                             const SizedBox(width: 6),
                             Text(
                               challenge.category.displayName.toUpperCase(),
@@ -144,8 +148,7 @@ class ChallengeDetailScreen extends StatelessWidget {
                 Center(
                   child: XPProgressRing(
                     progress: challenge.progress,
-                    centerLabel:
-                        '${(challenge.progress * 100).toInt()}%',
+                    centerLabel: '${(challenge.progress * 100).toInt()}%',
                     subLabel:
                         'Dia ${challenge.currentDay} / ${challenge.totalDays}',
                     size: 150,
@@ -214,20 +217,44 @@ class ChallengeDetailScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _DayGrid(
                     currentDay: challenge.currentDay,
-                    totalDays: challenge.totalDays),
-                const SizedBox(height: 24),
+                    totalDays: challenge.totalDays,
+                    createdAt: challenge.createdAt),
+                const SizedBox(height: 12),
+                if (!challenge.isCompleted && challenge.replanCount < 2)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => showReplanSheet(context, challengeId),
+                      icon: const Icon(Icons.tune, size: 16),
+                      label: Text(
+                        risk.riskScore >= 0.5
+                            ? 'Está apertado? Replanejar'
+                            : 'Replanejar',
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: risk.riskScore >= 0.5
+                            ? AppColors.riskHigh
+                            : AppColors.textSecond,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 12),
 
                 // Botão completar dia
                 ElevatedButton.icon(
                   onPressed: alreadyDone || challenge.isCompleted
                       ? null
                       : () async {
+                          final escolha = await showCompleteNoteSheet(context);
+                          if (escolha == null || !context.mounted) return;
                           try {
                             final result = await context
                                 .read<ChallengeProvider>()
-                                .completeDay(challengeId);
+                                .completeDay(challengeId, note: escolha.note);
                             if (!context.mounted) return;
-                            context.read<UserProvider>().syncTotalXp(result.totalXp);
+                            context
+                                .read<UserProvider>()
+                                .syncTotalXp(result.totalXp);
 
                             final updated = context
                                 .read<ChallengeProvider>()
@@ -235,9 +262,15 @@ class ChallengeDetailScreen extends StatelessWidget {
 
                             // Notificação de marco nos dias 7, 14, 21, 30
                             if ([7, 14, 21, 30].contains(updated.currentDay)) {
-                              await context.read<NotificationProvider>().checkAndNotify(
+                              await context
+                                  .read<NotificationProvider>()
+                                  .checkAndNotify(
                                 challenges: [updated],
-                                risks: [context.read<ChallengeProvider>().getRisk(challengeId)],
+                                risks: [
+                                  context
+                                      .read<ChallengeProvider>()
+                                      .getRisk(challengeId)
+                                ],
                               );
                             }
 
@@ -265,16 +298,13 @@ class ChallengeDetailScreen extends StatelessWidget {
                                 content: Text(isAlreadyDone
                                     ? 'Você já concluiu este desafio hoje.'
                                     : e.message),
-                                backgroundColor: isAlreadyDone
-                                    ? AppColors.riskMedium
-                                    : null,
+                                backgroundColor:
+                                    isAlreadyDone ? AppColors.riskMedium : null,
                               ),
                             );
                           }
                         },
-                  icon: Icon(alreadyDone
-                      ? Icons.check_circle
-                      : Icons.add_task),
+                  icon: Icon(alreadyDone ? Icons.check_circle : Icons.add_task),
                   label: Text(challenge.isCompleted
                       ? '🏆 Desafio Concluído!'
                       : alreadyDone
@@ -425,7 +455,8 @@ class _SourcePill extends StatelessWidget {
       ),
       child: Text(
         aiGenerated ? 'Gerado por IA' : 'Sugestão padrão',
-        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w600),
+        style:
+            TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -434,13 +465,27 @@ class _SourcePill extends StatelessWidget {
 class _DayGrid extends StatelessWidget {
   final int currentDay;
   final int totalDays;
+  final DateTime? createdAt;
 
-  const _DayGrid({required this.currentDay, required this.totalDays});
+  const _DayGrid({
+    required this.currentDay,
+    required this.totalDays,
+    this.createdAt,
+  });
 
   static const _milestones = [7, 14, 21, 30];
 
+  /// Dia-número em que o aluno "deveria" estar se cumprisse um por dia de
+  /// calendário. Dia da criação = dia 1. `null` createdAt → sem "atrasado".
+  int get _diaEsperado {
+    if (createdAt == null) return currentDay;
+    final dias = DateTime.now().difference(createdAt!).inDays;
+    return (dias + 1).clamp(1, totalDays);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final esperado = _diaEsperado;
     final todayCell = currentDay < totalDays ? currentDay + 1 : -1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,17 +503,28 @@ class _DayGrid extends StatelessWidget {
           itemBuilder: (_, i) {
             final day = i + 1;
             final done = day <= currentDay;
+            // dia cujo calendário já passou sem conclusão
+            final atrasado = !done && day <= esperado && day != todayCell;
             final isMilestone = _milestones.contains(day);
-            final isToday = day == todayCell;
+            final isToday = day == todayCell && !atrasado;
             return Container(
               decoration: BoxDecoration(
-                color: done ? AppColors.accent : AppColors.surface2,
+                color: done
+                    ? AppColors.accent
+                    : atrasado
+                        ? AppColors.surface2.withValues(alpha: 0.4)
+                        : AppColors.surface2,
                 borderRadius: BorderRadius.circular(6),
                 border: isToday
                     ? Border.all(color: AppColors.textPrimary, width: 2)
-                    : (isMilestone && !done)
-                        ? Border.all(color: AppColors.riskMedium, width: 1.5)
-                        : null,
+                    : atrasado
+                        ? Border.all(
+                            color: AppColors.riskHigh.withValues(alpha: 0.6),
+                            width: 1)
+                        : (isMilestone && !done)
+                            ? Border.all(
+                                color: AppColors.riskMedium, width: 1.5)
+                            : null,
               ),
               child: Center(
                 child: isMilestone && done
@@ -477,12 +533,14 @@ class _DayGrid extends StatelessWidget {
                     : Text(
                         '$day',
                         style: TextStyle(
-                          color:
-                              done ? AppColors.accentInk : AppColors.textSecond,
+                          color: done
+                              ? AppColors.accentInk
+                              : atrasado
+                                  ? AppColors.riskHigh
+                                  : AppColors.textSecond,
                           fontSize: 11,
-                          fontWeight: isMilestone
-                              ? FontWeight.w700
-                              : FontWeight.w400,
+                          fontWeight:
+                              isMilestone ? FontWeight.w700 : FontWeight.w400,
                         ),
                       ),
               ),
@@ -490,15 +548,19 @@ class _DayGrid extends StatelessWidget {
           },
         ),
         const SizedBox(height: 10),
-        const Wrap(
+        Wrap(
           spacing: 14,
           runSpacing: 6,
           children: [
-            _LegendItem(color: AppColors.accent, label: 'Concluído'),
-            _LegendItem(color: AppColors.riskMedium, label: 'Marco', outline: true),
-            _LegendItem(
+            const _LegendItem(color: AppColors.accent, label: 'Concluído'),
+            const _LegendItem(
+                color: AppColors.riskMedium, label: 'Marco', outline: true),
+            const _LegendItem(
                 color: AppColors.textPrimary, label: 'Hoje', outline: true),
-            _LegendItem(color: AppColors.surface2, label: 'Pendente'),
+            if (createdAt != null && esperado > currentDay)
+              const _LegendItem(
+                  color: AppColors.riskHigh, label: 'Atrasado', outline: true),
+            const _LegendItem(color: AppColors.surface2, label: 'Pendente'),
           ],
         ),
       ],

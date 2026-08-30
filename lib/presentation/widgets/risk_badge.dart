@@ -13,11 +13,11 @@ class RiskBadge extends StatelessWidget {
   });
 
   Color get _bgColor => switch (assessment.riskLevel) {
-    RiskLevel.low      => AppColors.riskLow,
-    RiskLevel.medium   => AppColors.riskMedium,
-    RiskLevel.high     => AppColors.riskHigh,
-    RiskLevel.critical => AppColors.riskCritical,
-  };
+        RiskLevel.low => AppColors.riskLow,
+        RiskLevel.medium => AppColors.riskMedium,
+        RiskLevel.high => AppColors.riskHigh,
+        RiskLevel.critical => AppColors.riskCritical,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,8 @@ class RiskBadge extends StatelessWidget {
             Container(
               width: 6,
               height: 6,
-              decoration: BoxDecoration(color: _bgColor, shape: BoxShape.circle),
+              decoration:
+                  BoxDecoration(color: _bgColor, shape: BoxShape.circle),
             ),
             const SizedBox(width: 4),
             Text(
@@ -52,8 +53,8 @@ class RiskBadge extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 assessment.riskLevel.label,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 11),
+                style:
+                    const TextStyle(color: AppColors.textPrimary, fontSize: 11),
               ),
             ],
           ],

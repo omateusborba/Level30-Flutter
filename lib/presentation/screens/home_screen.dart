@@ -17,6 +17,7 @@ import '../widgets/delete_confirm_dialog.dart';
 import '../widgets/level30_app_bar.dart';
 import '../widgets/motivation_card.dart';
 import '../widgets/onboarding_tour.dart';
+import '../widgets/stat_tile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,7 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
         title: 'Level30',
         actions: [
           IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: AppColors.accent),
+            icon:
+                const Icon(Icons.chat_bubble_outline, color: AppColors.accent),
             tooltip: 'Assistente',
             onPressed: () => Navigator.pushNamed(context, '/chat'),
           ),
@@ -163,7 +165,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     TourStep(
                       globalKey: OnboardingTourKeys.xpBar,
                       title: 'Seu Progresso',
-                      description: 'Aqui você acompanha seu XP total e nível atual.\nCada dia completado vale pontos de experiência.',
+                      description:
+                          'Aqui você acompanha seu XP total e nível atual.\nCada dia completado vale pontos de experiência.',
                       child: _StatsRow(cp: cp),
                     ),
                     const SizedBox(height: 20),
@@ -188,7 +191,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: TourStep(
                 globalKey: OnboardingTourKeys.categoryRow,
                 title: 'Filtre seus Desafios',
-                description: 'Toque em uma categoria para ver apenas os desafios desse tipo:\nEstudos, Saúde, Fitness, Mindfulness ou Produtividade.',
+                description:
+                    'Toque em uma categoria para ver apenas os desafios desse tipo:\nEstudos, Saúde, Fitness, Mindfulness ou Produtividade.',
                 child: SizedBox(
                   height: 44,
                   child: ListView(
@@ -220,8 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
             // Banner discreto de dados offline (US-032)
-            if (cp.isStale)
-              const SliverToBoxAdapter(child: _StaleBanner()),
+            if (cp.isStale) const SliverToBoxAdapter(child: _StaleBanner()),
 
             // Lista de desafios
             SliverPadding(
@@ -248,7 +251,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? TourStep(
                                   globalKey: OnboardingTourKeys.challengeCard,
                                   title: 'Seus Desafios de 30 Dias',
-                                  description: 'Cada card mostra seu progresso, streak e nível de risco.\nToque para ver os detalhes e marcar o dia de hoje.',
+                                  description:
+                                      'Cada card mostra seu progresso, streak e nível de risco.\nToque para ver os detalhes e marcar o dia de hoje.',
                                   child: ChallengeCard(challenge: challenge),
                                 )
                               : ChallengeCard(challenge: challenge);
@@ -280,7 +284,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             onDismissed: (_) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('"${challenge.title}" excluído.'),
+                                  content:
+                                      Text('"${challenge.title}" excluído.'),
                                   backgroundColor: const Color(0xFF1A3A5C),
                                 ),
                               );
@@ -291,10 +296,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 0, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDE350B).withValues(alpha: 0.15),
+                                color: const Color(0xFFDE350B)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: const Color(0xFFDE350B).withValues(alpha: 0.4),
+                                  color: const Color(0xFFDE350B)
+                                      .withValues(alpha: 0.4),
                                   width: 1,
                                 ),
                               ),
@@ -339,7 +346,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     TourStep(
                       globalKey: OnboardingTourKeys.motivCard,
                       title: 'Motivação Diária',
-                      description: 'Uma frase para dar um estímulo ao seu dia. Toque para expandir.',
+                      description:
+                          'Uma frase para dar um estímulo ao seu dia. Toque para expandir.',
                       child: MotivationCard(quote: _quote),
                     ),
                   ],
@@ -355,7 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: TourStep(
         globalKey: OnboardingTourKeys.fabButton,
         title: 'Crie um Novo Desafio',
-        description: 'Toque aqui para criar seu próximo desafio de 30 dias.\nEscolha a categoria, duração e recompensa de XP.',
+        description:
+            'Toque aqui para criar seu próximo desafio de 30 dias.\nEscolha a categoria, duração e recompensa de XP.',
         child: FloatingActionButton.extended(
           onPressed: () => Navigator.pushNamed(context, '/create_challenge'),
           tooltip: 'Novo desafio',
@@ -366,7 +375,8 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: TourStep(
         globalKey: OnboardingTourKeys.bottomNav,
         title: 'Navegação Principal',
-        description: 'Use a barra inferior para navegar entre Home, Mapa e Perfil.\nO mapa organiza seus desafios ao redor da sua localização atual.',
+        description:
+            'Use a barra inferior para navegar entre Home, Mapa e Perfil.\nO mapa organiza seus desafios ao redor da sua localização atual.',
         child: const AppBottomNav(currentIndex: 0),
       ),
     );
@@ -463,7 +473,8 @@ class _EmptyChallenges extends StatelessWidget {
           Text(
             'Crie seu primeiro desafio de 30 dias e comece a construir o hábito hoje.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(color: AppColors.textSecond, fontSize: 13),
+            style:
+                GoogleFonts.poppins(color: AppColors.textSecond, fontSize: 13),
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
@@ -523,8 +534,7 @@ class _WeatherCard extends StatelessWidget {
             ),
           ),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.accent.withAlpha(26),
               borderRadius: BorderRadius.circular(8),
@@ -552,52 +562,27 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StatChip(label: 'Ativos', value: '${cp.activeCount}',
-            icon: Icons.local_fire_department),
+        Expanded(
+          child: StatTile(
+              icon: Icons.local_fire_department,
+              value: '${cp.activeCount}',
+              label: 'Ativos'),
+        ),
         const SizedBox(width: 10),
-        _StatChip(label: 'Concluídos', value: '${cp.completedCount}',
-            icon: Icons.check_circle_outline),
+        Expanded(
+          child: StatTile(
+              icon: Icons.check_circle_outline,
+              value: '${cp.completedCount}',
+              label: 'Concluídos'),
+        ),
         const SizedBox(width: 10),
-        _StatChip(label: 'Melhor streak', value: '${cp.bestStreak}d',
-            icon: Icons.bolt),
+        Expanded(
+          child: StatTile(
+              icon: Icons.bolt,
+              value: '${cp.bestStreak}d',
+              label: 'Melhor streak'),
+        ),
       ],
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-
-  const _StatChip(
-      {required this.label, required this.value, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppColors.accent, size: 18),
-            const SizedBox(height: 4),
-            Text(value,
-                style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16)),
-            Text(label,
-                style: const TextStyle(
-                    color: AppColors.textSecond, fontSize: 10)),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -617,8 +602,7 @@ class _StaleBanner extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(Icons.cloud_off_outlined,
-              color: AppColors.riskMedium, size: 16),
+          Icon(Icons.cloud_off_outlined, color: AppColors.riskMedium, size: 16),
           SizedBox(width: 8),
           Expanded(
             child: Text(

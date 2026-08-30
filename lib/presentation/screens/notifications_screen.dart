@@ -40,14 +40,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _notifyRisks(BuildContext context) async {
-    setState(() { _sending = true; _lastSent = null; });
+    setState(() {
+      _sending = true;
+      _lastSent = null;
+    });
     final cp = context.read<ChallengeProvider>();
     final np = context.read<NotificationProvider>();
     final count = await np.checkAndNotify(
       challenges: cp.allChallenges,
       risks: cp.getAllRisks(),
     );
-    if (mounted) setState(() { _sending = false; _lastSent = count; });
+    if (mounted)
+      setState(() {
+        _sending = false;
+        _lastSent = count;
+      });
   }
 
   Future<void> _sendTest(NotificationProvider np) async {
@@ -57,7 +64,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Comando de notificação enviado ao sistema, sem erros.'),
+            content:
+                Text('Comando de notificação enviado ao sistema, sem erros.'),
             backgroundColor: AppColors.accent,
           ),
         );
@@ -183,8 +191,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: GoogleFonts.poppins(color: AppColors.textPrimary)),
               subtitle: Text(
                 'Todo dia às ${np.timeLabel}',
-                style:
-                    GoogleFonts.poppins(color: AppColors.textSecond, fontSize: 12),
+                style: GoogleFonts.poppins(
+                    color: AppColors.textSecond, fontSize: 12),
               ),
               trailing: Text(
                 np.timeLabel,
@@ -201,8 +209,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               'Toque para alterar o horário do lembrete diário',
-              style:
-                  GoogleFonts.poppins(color: AppColors.textSecond, fontSize: 11),
+              style: GoogleFonts.poppins(
+                  color: AppColors.textSecond, fontSize: 11),
             ),
           ),
           const SizedBox(height: 20),
@@ -217,8 +225,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   leading: const Icon(Icons.science_outlined,
                       color: AppColors.accent),
                   title: Text('Enviar notificação de teste',
-                      style:
-                          GoogleFonts.poppins(color: AppColors.textPrimary)),
+                      style: GoogleFonts.poppins(color: AppColors.textPrimary)),
                   subtitle: Text('Confirme que as notificações chegam',
                       style: GoogleFonts.poppins(
                           color: AppColors.textSecond, fontSize: 12)),
@@ -230,17 +237,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               strokeWidth: 2, color: AppColors.accent))
                       : const Icon(Icons.chevron_right,
                           color: AppColors.textSecond),
-                  onTap: _sending || !np.enabled
-                      ? null
-                      : () => _sendTest(np),
+                  onTap: _sending || !np.enabled ? null : () => _sendTest(np),
                 ),
-                const Divider(color: AppColors.primary, height: 1),
+                const Divider(color: AppColors.border, height: 1),
                 ListTile(
                   leading: const Icon(Icons.warning_amber_outlined,
                       color: AppColors.riskHigh),
                   title: Text('Notificar desafios em risco',
-                      style:
-                          GoogleFonts.poppins(color: AppColors.textPrimary)),
+                      style: GoogleFonts.poppins(color: AppColors.textPrimary)),
                   subtitle: Text(
                     _lastSent == null
                         ? 'Envia alertas para todos os desafios com risco > baixo'
@@ -288,7 +292,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withAlpha(60)),
+                border: Border.all(color: AppColors.border),
               ),
               child: ListTile(
                 leading: Text(challenge.category.emoji,
@@ -354,7 +358,7 @@ class _Card extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.primary.withAlpha(60)),
+          border: Border.all(color: AppColors.border),
         ),
         child: child,
       );

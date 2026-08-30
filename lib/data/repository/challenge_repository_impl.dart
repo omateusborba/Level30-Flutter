@@ -47,10 +47,17 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
   }
 
   @override
-  Future<({Challenge challenge, int xpDelta, int totalXp, List<Achievement> conquistas})>
-      completeDay(String id) async {
-    final res =
-        await _api.post('/challenges/$id/complete') as Map<String, dynamic>;
+  Future<
+      ({
+        Challenge challenge,
+        int xpDelta,
+        int totalXp,
+        List<Achievement> conquistas
+      })> completeDay(String id, {String? note}) async {
+    final body =
+        (note != null && note.trim().isNotEmpty) ? {'note': note.trim()} : null;
+    final res = await _api.post('/challenges/$id/complete', body)
+        as Map<String, dynamic>;
     final conquistas = (res['conquistas'] as List? ?? [])
         .map((j) => Achievement.fromJson(j as Map<String, dynamic>))
         .toList();
@@ -92,11 +99,41 @@ class ChallengeRepositoryImpl implements ChallengeRepository {
 
   @override
   Future<({String message, bool aiGenerated})> recommendation(String id) async {
-    final res =
-        await _api.get('/challenges/$id/recommendation') as Map<String, dynamic>;
+    final res = await _api.get('/challenges/$id/recommendation')
+        as Map<String, dynamic>;
     return (
       message: res['message'] as String,
       aiGenerated: res['aiGenerated'] as bool,
     );
+  }
+
+  @override
+  Future<ReplanSugestao> replanSugestao(String id) async {
+    final res = await _api.post('/challenges/$id/replanejar/sugestao')
+        as Map<String, dynamic>;
+    return ReplanSugestao.fromJson(res);
+  }
+
+  @override
+  Future<Challenge> replanejar(String id, int totalDays) async {
+    final res =
+        await _api.post('/challenges/$id/replanejar', {'totalDays': totalDays})
+            as Map<String, dynamic>;
+    return Challenge.fromJson(res);
+  }
+
+  @override
+  Future<List<ProgramChallenge>> programa() async {
+    final res = await _api.get('/programa') as List;
+    return res
+        .map((j) => ProgramChallenge.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<Challenge> adotarPrograma(String programId) async {
+    final res =
+        await _api.post('/programa/$programId/adotar') as Map<String, dynamic>;
+    return Challenge.fromJson(res);
   }
 }

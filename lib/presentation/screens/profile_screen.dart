@@ -35,7 +35,8 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: AppColors.surface,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.accent),
+            icon: const Icon(Icons.notifications_outlined,
+                color: AppColors.accent),
             tooltip: 'Notificações',
             onPressed: () => Navigator.pushNamed(context, '/notifications'),
           ),
@@ -73,6 +74,15 @@ class ProfileScreen extends StatelessWidget {
 
             // Heatmap de atividade (F1)
             const _ActivitySection(),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/progress'),
+                icon: const Icon(Icons.insights_outlined, size: 18),
+                label: const Text('Ver Meu Progresso'),
+              ),
+            ),
             const SizedBox(height: 24),
 
             // Conquistas (F4)
@@ -158,14 +168,17 @@ class _AvatarSectionState extends State<_AvatarSection> {
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.riskCritical),
+          SnackBar(
+              content: Text(e.message),
+              backgroundColor: AppColors.riskCritical),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Não foi possível atualizar a foto. Tente novamente.'),
+            content:
+                Text('Não foi possível atualizar a foto. Tente novamente.'),
             backgroundColor: AppColors.riskCritical,
           ),
         );
@@ -184,13 +197,17 @@ class _AvatarSectionState extends State<_AvatarSection> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined, color: AppColors.accent),
-              title: Text('Câmera', style: GoogleFonts.poppins(color: AppColors.textPrimary)),
+              leading: const Icon(Icons.photo_camera_outlined,
+                  color: AppColors.accent),
+              title: Text('Câmera',
+                  style: GoogleFonts.poppins(color: AppColors.textPrimary)),
               onTap: () => _pickFrom(ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
-              title: Text('Galeria', style: GoogleFonts.poppins(color: AppColors.textPrimary)),
+              leading: const Icon(Icons.photo_library_outlined,
+                  color: AppColors.accent),
+              title: Text('Galeria',
+                  style: GoogleFonts.poppins(color: AppColors.textPrimary)),
               onTap: () => _pickFrom(ImageSource.gallery),
             ),
           ],
@@ -218,7 +235,8 @@ class _AvatarSectionState extends State<_AvatarSection> {
                   color: AppColors.surface2,
                   border: Border.all(color: AppColors.accent, width: 2),
                   image: avatarBytes != null
-                      ? DecorationImage(image: MemoryImage(avatarBytes), fit: BoxFit.cover)
+                      ? DecorationImage(
+                          image: MemoryImage(avatarBytes), fit: BoxFit.cover)
                       : null,
                 ),
                 child: avatarBytes == null
@@ -265,7 +283,8 @@ class _AvatarSectionState extends State<_AvatarSection> {
                     shape: BoxShape.circle,
                     color: AppColors.accent,
                   ),
-                  child: const Icon(Icons.edit, size: 14, color: AppColors.background),
+                  child: const Icon(Icons.edit,
+                      size: 14, color: AppColors.background),
                 ),
               ),
             ],
@@ -305,7 +324,11 @@ class _StatsGrid extends StatelessWidget {
       (Icons.track_changes_outlined, 'Ativos', '${cp.activeCount}'),
       (Icons.check_circle_outline, 'Concluídos', '${cp.completedCount}'),
       (Icons.bolt_outlined, 'XP Total', '${profile.totalXp}'),
-      (Icons.local_fire_department_outlined, 'Melhor streak', '${cp.bestStreak} dias'),
+      (
+        Icons.local_fire_department_outlined,
+        'Melhor streak',
+        '${cp.bestStreak} dias'
+      ),
     ];
 
     return GridView.count(
@@ -500,14 +523,18 @@ class _ConquistaTile extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: on ? AppColors.accent.withValues(alpha: 0.5) : AppColors.border),
+              color: on
+                  ? AppColors.accent.withValues(alpha: 0.5)
+                  : AppColors.border),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(a.icon,
                 size: 22,
-                color: on ? AppColors.accent : AppColors.textSecond.withValues(alpha: 0.4)),
+                color: on
+                    ? AppColors.accent
+                    : AppColors.textSecond.withValues(alpha: 0.4)),
             const SizedBox(height: 6),
             Text(a.nome,
                 textAlign: TextAlign.center,
@@ -560,8 +587,7 @@ class _MilestonesSection extends StatelessWidget {
           ...reached.map(
             (m) => Container(
               margin: const EdgeInsets.only(bottom: 8),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(10),
@@ -587,4 +613,3 @@ class _MilestonesSection extends StatelessWidget {
     );
   }
 }
-

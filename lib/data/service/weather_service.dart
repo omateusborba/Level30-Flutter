@@ -7,10 +7,9 @@ class WeatherService {
   Future<Map<String, dynamic>?> getCurrentWeather(
       double lat, double lon) async {
     try {
-      final uri = Uri.parse(
-          '$_base?latitude=$lat&longitude=$lon&current_weather=true');
-      final res =
-          await http.get(uri).timeout(const Duration(seconds: 5));
+      final uri =
+          Uri.parse('$_base?latitude=$lat&longitude=$lon&current_weather=true');
+      final res = await http.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         return data['current_weather'] as Map<String, dynamic>?;

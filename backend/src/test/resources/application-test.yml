@@ -19,5 +19,9 @@ app:
     service-token: ""
   cors:
     allowed-origins: http://localhost:4200
+  security:
+    auth-rate-limit:
+      max-requests: 500   # alto por padrao; o teste de rate limit sobe seu proprio contexto
+      window-seconds: 60
   seed:
     enabled: false

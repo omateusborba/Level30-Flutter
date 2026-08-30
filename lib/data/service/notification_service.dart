@@ -42,13 +42,13 @@ class NotificationService {
       const InitializationSettings(android: android, iOS: ios),
     );
 
-    final androidPlugin = _local
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _local.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
 
     await androidPlugin?.requestNotificationsPermission();
 
-    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+    await androidPlugin
+        ?.createNotificationChannel(const AndroidNotificationChannel(
       _channelId,
       _channelName,
       description: _channelDesc,
@@ -169,7 +169,8 @@ class NotificationService {
           await sendLocalNotification(
             id: _idMilestoneBase + i,
             title: '🎉 Marco atingido!',
-            body: 'Parabéns! Você completou ${c.currentDay} dias em "${c.title}"!',
+            body:
+                'Parabéns! Você completou ${c.currentDay} dias em "${c.title}"!',
             payload: c.id,
           );
           sent++;
@@ -177,7 +178,8 @@ class NotificationService {
           await sendLocalNotification(
             id: _idRiskBase + i,
             title: '🚨 "${c.title}" em risco crítico',
-            body: 'Você está a ${c.totalDays - c.currentDay} dias do fim. Retome hoje!',
+            body:
+                'Você está a ${c.totalDays - c.currentDay} dias do fim. Retome hoje!',
             payload: c.id,
           );
           sent++;
@@ -193,7 +195,8 @@ class NotificationService {
           await sendLocalNotification(
             id: _idRiskBase + i,
             title: '🔔 Lembrete: "${c.title}"',
-            body: 'Dia ${c.currentDay + 1} de ${c.totalDays} esperando por você!',
+            body:
+                'Dia ${c.currentDay + 1} de ${c.totalDays} esperando por você!',
             payload: c.id,
           );
           sent++;

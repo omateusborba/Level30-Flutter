@@ -82,128 +82,166 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            // Título
-            _SectionLabel('Título do desafio'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _titleController,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                hintText: 'Ex: Leitura diária, Exercício matinal…',
-                prefixIcon: Icon(Icons.flag_outlined, color: AppColors.textSecond),
+        child: SliderTheme(
+          // valor sempre visível na bolha sobre o thumb
+          data: SliderTheme.of(context).copyWith(
+            showValueIndicator: ShowValueIndicator.always,
+            valueIndicatorColor: AppColors.surface2,
+            valueIndicatorTextStyle: const TextStyle(
+                color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+          ),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // C3 · atalho para os desafios do programa
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/programa'),
+                  icon: const Icon(Icons.workspaces_outline, size: 18),
+                  label: const Text('Ver desafios do programa'),
+                ),
               ),
-              textCapitalization: TextCapitalization.sentences,
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Insira um título';
-                if (v.trim().length < 3) return 'Título muito curto';
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Categoria
-            _SectionLabel('Categoria'),
-            const SizedBox(height: 12),
-            _CategorySelector(
-              selected: _selectedCategory,
-              onChanged: (cat) => setState(() => _selectedCategory = cat),
-            ),
-            const SizedBox(height: 24),
-
-            // Descrição
-            _SectionLabel('Descrição'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _descController,
-              style: const TextStyle(color: AppColors.textPrimary),
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Descreva o que você vai fazer todos os dias…',
-                alignLabelWithHint: true,
+              const SizedBox(height: 8),
+              const Center(
+                child: Text('ou crie o seu',
+                    style:
+                        TextStyle(color: AppColors.textSecond, fontSize: 12)),
               ),
-              textCapitalization: TextCapitalization.sentences,
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Insira uma descrição';
-                return null;
-              },
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-            // Duração
-            _SectionLabel('Duração: $_totalDays dias'),
-            Slider(
-              value: _totalDays.toDouble(),
-              min: 7,
-              max: 90,
-              divisions: 11,
-              activeColor: AppColors.accent,
-              inactiveColor: AppColors.primary,
-              label: '$_totalDays dias',
-              onChanged: (v) => setState(() => _totalDays = v.toInt()),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('7 dias', style: TextStyle(color: AppColors.textSecond, fontSize: 11)),
-                  Text('90 dias', style: TextStyle(color: AppColors.textSecond, fontSize: 11)),
-                ],
+              // Título
+              _SectionLabel('Título do desafio'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _titleController,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: const InputDecoration(
+                  hintText: 'Ex: Leitura diária, Exercício matinal…',
+                  prefixIcon:
+                      Icon(Icons.flag_outlined, color: AppColors.textSecond),
+                ),
+                textCapitalization: TextCapitalization.sentences,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Insira um título';
+                  if (v.trim().length < 3) return 'Título muito curto';
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // XP
-            _SectionLabel('Recompensa: ${_xpReward.toInt()} XP'),
-            Slider(
-              value: _xpReward,
-              min: 100,
-              max: 1000,
-              divisions: 18,
-              activeColor: AppColors.accent,
-              inactiveColor: AppColors.primary,
-              label: '${_xpReward.toInt()} XP',
-              onChanged: (v) => setState(() => _xpReward = v),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('100 XP', style: TextStyle(color: AppColors.textSecond, fontSize: 11)),
-                  Text('1000 XP', style: TextStyle(color: AppColors.textSecond, fontSize: 11)),
-                ],
+              // Categoria
+              _SectionLabel('Categoria'),
+              const SizedBox(height: 12),
+              _CategorySelector(
+                selected: _selectedCategory,
+                onChanged: (cat) => setState(() => _selectedCategory = cat),
               ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-            // Preview card
-            _PreviewCard(
-              title: _titleController.text.isEmpty ? 'Título do desafio' : _titleController.text,
-              category: _selectedCategory,
-              totalDays: _totalDays,
-              xpReward: _xpReward.toInt(),
-            ),
-            const SizedBox(height: 32),
+              // Descrição
+              _SectionLabel('Descrição'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _descController,
+                style: const TextStyle(color: AppColors.textPrimary),
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Descreva o que você vai fazer todos os dias…',
+                  alignLabelWithHint: true,
+                ),
+                textCapitalization: TextCapitalization.sentences,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty)
+                    return 'Insira uma descrição';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
 
-            // Botão criar
-            ElevatedButton.icon(
-              onPressed: _submitting ? null : _submit,
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.background),
-                    )
-                  : const Icon(Icons.add_task),
-              label: Text(_submitting ? 'Criando…' : 'Criar Desafio'),
-            ),
-            const SizedBox(height: 24),
-          ],
+              // Duração
+              _SectionLabel('Duração: $_totalDays dias'),
+              Slider(
+                value: _totalDays.toDouble(),
+                min: 7,
+                max: 90,
+                divisions: 11,
+                activeColor: AppColors.accent,
+                inactiveColor: AppColors.surface2,
+                label: '$_totalDays dias',
+                onChanged: (v) => setState(() => _totalDays = v.toInt()),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('7 dias',
+                        style: TextStyle(
+                            color: AppColors.textSecond, fontSize: 11)),
+                    Text('90 dias',
+                        style: TextStyle(
+                            color: AppColors.textSecond, fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // XP
+              _SectionLabel('Recompensa: ${_xpReward.toInt()} XP'),
+              Slider(
+                value: _xpReward,
+                min: 100,
+                max: 1000,
+                divisions: 18,
+                activeColor: AppColors.accent,
+                inactiveColor: AppColors.surface2,
+                label: '${_xpReward.toInt()} XP',
+                onChanged: (v) => setState(() => _xpReward = v),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('100 XP',
+                        style: TextStyle(
+                            color: AppColors.textSecond, fontSize: 11)),
+                    Text('1000 XP',
+                        style: TextStyle(
+                            color: AppColors.textSecond, fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Preview card
+              _PreviewCard(
+                title: _titleController.text.isEmpty
+                    ? 'Título do desafio'
+                    : _titleController.text,
+                category: _selectedCategory,
+                totalDays: _totalDays,
+                xpReward: _xpReward.toInt(),
+              ),
+              const SizedBox(height: 32),
+
+              // Botão criar
+              ElevatedButton.icon(
+                onPressed: _submitting ? null : _submit,
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.background),
+                      )
+                    : const Icon(Icons.add_task),
+                label: Text(_submitting ? 'Criando…' : 'Criar Desafio'),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -260,12 +298,10 @@ class _CategorySelector extends StatelessWidget {
                 Text(
                   cat.displayName,
                   style: GoogleFonts.poppins(
-                    color: isSelected
-                        ? AppColors.accentInk
-                        : AppColors.textSecond,
+                    color:
+                        isSelected ? AppColors.accentInk : AppColors.textSecond,
                     fontSize: 13,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ],
@@ -331,7 +367,8 @@ class _PreviewCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text(category.emoji, style: const TextStyle(fontSize: 18)),
+                            Text(category.emoji,
+                                style: const TextStyle(fontSize: 18)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -350,8 +387,9 @@ class _PreviewCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                           child: const LinearProgressIndicator(
                             value: 0,
-                            backgroundColor: AppColors.primary,
-                            valueColor: AlwaysStoppedAnimation(AppColors.accent),
+                            backgroundColor: AppColors.surface2,
+                            valueColor:
+                                AlwaysStoppedAnimation(AppColors.accent),
                             minHeight: 6,
                           ),
                         ),
@@ -361,11 +399,13 @@ class _PreviewCard extends StatelessWidget {
                           children: [
                             Text(
                               'Dia 0 de $totalDays',
-                              style: const TextStyle(color: AppColors.textSecond, fontSize: 12),
+                              style: const TextStyle(
+                                  color: AppColors.textSecond, fontSize: 12),
                             ),
                             Text(
                               '$xpReward XP',
-                              style: const TextStyle(color: AppColors.accent, fontSize: 12),
+                              style: const TextStyle(
+                                  color: AppColors.accent, fontSize: 12),
                             ),
                           ],
                         ),

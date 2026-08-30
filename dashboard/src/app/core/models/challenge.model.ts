@@ -30,13 +30,25 @@ export interface Challenge {
   lastActivityAt: string | null;
 }
 
-/** Corpo de POST /challenges (contract.md). */
+/** Corpo de POST /challenges e POST /admin/programa (mesmos campos). */
 export interface CreateChallengeRequest {
   title: string;
   category: Category;
   description: string;
   totalDays: number;
   xpReward: number;
+}
+
+/** Item de GET /admin/programa — modelo de desafio do programa (C3). */
+export interface ProgramChallenge {
+  id: string;
+  title: string;
+  category: Category;
+  description: string;
+  totalDays: number;
+  xpReward: number;
+  active: boolean;
+  adotantes: number;
 }
 
 /** Item de GET /admin/desafios — Page<AdminChallengeResponse>. */
@@ -52,4 +64,6 @@ export interface AdminChallenge {
   riskScore: number;
   riskLevel: RiskLevel;
   concluido: boolean;
+  /** C2 — replanejamentos aplicados (0..2). */
+  replanCount: number;
 }

@@ -30,13 +30,17 @@ app:
     # openssl rand -hex 32  — NUNCA versionar o valor real
     secret: ${JWT_SECRET:dev-only-insecure-secret-please-change-me-0000000000}
     access-ttl-seconds: 3600
-    refresh-ttl-seconds: 2592000
+    refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:604800}   # 7 dias (A2)
   ai:
     worker-url: ${AI_WORKER_URL:}
     service-token: ${AI_SERVICE_TOKEN:}
     timeout-seconds: 15
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:4200}
+  security:
+    auth-rate-limit:
+      max-requests: ${AUTH_RATE_LIMIT_MAX:10}
+      window-seconds: ${AUTH_RATE_LIMIT_WINDOW:60}
   seed:
     enabled: ${SEED_ENABLED:true}
     admin-email: ${SEED_ADMIN_EMAIL:admin@level30.app}

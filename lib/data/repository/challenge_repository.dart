@@ -16,8 +16,13 @@ abstract class ChallengeRepository {
     required int totalDays,
   });
 
-  Future<({Challenge challenge, int xpDelta, int totalXp, List<Achievement> conquistas})>
-      completeDay(String id);
+  Future<
+      ({
+        Challenge challenge,
+        int xpDelta,
+        int totalXp,
+        List<Achievement> conquistas
+      })> completeDay(String id, {String? note});
 
   Future<void> delete(String id);
 
@@ -31,4 +36,16 @@ abstract class ChallengeRepository {
 
   /// F4 · catálogo de conquistas com estado de desbloqueio.
   Future<List<Achievement>> conquistas();
+
+  /// C2 · sugestão de replanejamento (IA + fallback). Não muta nada.
+  Future<ReplanSugestao> replanSugestao(String id);
+
+  /// C2 · aplica a nova duração (máx. 2x). Devolve o desafio atualizado.
+  Future<Challenge> replanejar(String id, int totalDays);
+
+  /// C3 · modelos de desafio ativos do programa.
+  Future<List<ProgramChallenge>> programa();
+
+  /// C3 · adota um modelo — devolve o desafio pessoal criado.
+  Future<Challenge> adotarPrograma(String programId);
 }

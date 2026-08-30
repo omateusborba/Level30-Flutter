@@ -14,6 +14,7 @@ public record AdminChallengeResponse(
         int streak,
         double riskScore,
         RiskLevel riskLevel,
-        boolean concluido
+        boolean concluido,
+        int replanCount
 ) {
 }

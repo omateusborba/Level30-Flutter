@@ -3,16 +3,21 @@ import 'package:showcaseview/showcaseview.dart';
 import '../../data/service/onboarding_service.dart';
 
 class OnboardingTourKeys {
-  static final xpBar        = GlobalKey();
-  static final motivCard    = GlobalKey();
-  static final categoryRow  = GlobalKey();
+  static final xpBar = GlobalKey();
+  static final motivCard = GlobalKey();
+  static final categoryRow = GlobalKey();
   static final challengeCard = GlobalKey();
-  static final fabButton    = GlobalKey();
-  static final bottomNav    = GlobalKey();
+  static final fabButton = GlobalKey();
+  static final bottomNav = GlobalKey();
 
   static List<GlobalKey> get all => [
-    xpBar, motivCard, categoryRow, challengeCard, fabButton, bottomNav,
-  ];
+        xpBar,
+        motivCard,
+        categoryRow,
+        challengeCard,
+        fabButton,
+        bottomNav,
+      ];
 }
 
 Future<void> startTourIfNeeded(

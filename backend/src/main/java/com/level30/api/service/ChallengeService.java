@@ -36,17 +36,20 @@ public class ChallengeService {
     private final UserRepository users;
     private final AiGatewayService aiGateway;
     private final AchievementService achievements;
+    private final RiskMaterializationService risk;
 
     public ChallengeService(ChallengeRepository challenges,
                             ChallengeCompletionRepository completions,
                             UserRepository users,
                             AiGatewayService aiGateway,
-                            AchievementService achievements) {
+                            AchievementService achievements,
+                            RiskMaterializationService risk) {
         this.challenges = challenges;
         this.completions = completions;
         this.users = users;
         this.aiGateway = aiGateway;
         this.achievements = achievements;
+        this.risk = risk;
     }
 
     @Transactional(readOnly = true)
@@ -68,12 +71,18 @@ public class ChallengeService {
                 req.totalDays(),
                 req.xpReward()
         );
+        risk.refresh(challenge);
         challenges.save(challenge);
         return ChallengeResponse.from(challenge);
     }
 
     @Transactional
     public CompleteResponse completeDay(UUID userId, UUID challengeId) {
+        return completeDay(userId, challengeId, null);
+    }
+
+    @Transactional
+    public CompleteResponse completeDay(UUID userId, UUID challengeId, String note) {
         Challenge c = ownedOrNotFound(userId, challengeId);
 
         if (c.isCompleted()) {
@@ -104,9 +113,10 @@ public class ChallengeService {
 
         // Tudo fecha na mesma transação (@Transactional).
         // A UNIQUE (challenge_id, completed_on) é a defesa de banco contra dia duplicado.
+        risk.refresh(c); // B1 — risco materializado atualizado junto
         challenges.save(c);
         users.save(user);
-        completions.save(ChallengeCompletion.of(c, nextDay, hoje, xpDelta));
+        completions.save(ChallengeCompletion.of(c, nextDay, hoje, xpDelta, note));
 
         var conquistas = achievements.avaliar(user);
 
@@ -126,7 +136,8 @@ public class ChallengeService {
     public List<AtividadeDiaResponse> atividade(UUID userId, LocalDate desde) {
         return completions.atividadePorDia(userId, desde).stream()
                 .map(v -> new AtividadeDiaResponse(
-                        DateTimeFormatter.ISO_LOCAL_DATE.format(v.getData()), v.getQuantidade()))
+                        DateTimeFormatter.ISO_LOCAL_DATE.format(v.getData()),
+                        v.getQuantidade(), v.getXp()))
                 .toList();
     }
 

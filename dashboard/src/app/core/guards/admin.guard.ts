@@ -2,13 +2,20 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-/** Bloqueia rotas se o usuário não estiver autenticado. */
+/**
+ * Painel restrito à coordenação:
+ * - não autenticado → /login
+ * - autenticado sem papel ADMIN → /sem-acesso (o servidor já responde 403 nas rotas /admin/**)
+ */
 export const adminGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  if (auth.isAuthenticated()) {
-    return true;
+  if (!auth.isAuthenticated()) {
+    return router.createUrlTree(['/login']);
   }
-  return router.createUrlTree(['/login']);
+  if (!auth.isAdmin()) {
+    return router.createUrlTree(['/sem-acesso']);
+  }
+  return true;
 };

@@ -65,8 +65,16 @@ node_modules/
 /backend/target/
 /backend/data/
 
-# Deploy — segredos nunca versionados
-/deploy/.env
+# Segredos — nunca versionados (varre o repo inteiro, nao so /deploy)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+**/local.properties
+secrets.*
 
 # Material de apoio (repositório git separado, fora do build)
 /agents/

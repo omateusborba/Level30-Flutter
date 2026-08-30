@@ -1,9 +1,10 @@
 # Rastreabilidade — Checklist de avaliação Angular (backlog seção 3.3)
 
 Mapa de cada recurso exigido para arquivo:linha. Conferido contra o código deste
-diretório (Angular 18 standalone) após o polimento de design da Fase 5.
+diretório (Angular 18 standalone) após o polimento de design e o endurecimento
+de segurança (Bloco 1: A2 refresh, A5 guard de papel, A7 headers, A8 ícones SVG).
 
-Base URL da API e credenciais: ver `../VISAO-GERAL.md`.
+Base URL da API: ver `../VISAO-GERAL.md` (credenciais só no `.env` da VM).
 
 ---
 
@@ -26,7 +27,7 @@ Base URL da API e credenciais: ver `../VISAO-GERAL.md`.
 | Onde | Arquivo:linha |
 |---|---|
 | `[disabled]` no botão Entrar / inputs do login | `src/app/features/login/login.component.ts:30,42,53` |
-| `[innerHTML]` do ícone SVG de cada KPI | `src/app/features/home/home.component.ts:56` |
+| `[name]` do `<app-icon>` de cada KPI + `[attr.d]` do `<path>` no ícone | `home.component.ts:56` · `src/app/shared/ui/icon.component.ts:33` |
 | `[style.width.%]` / `[style.background]` nas barras de distribuição | `src/app/features/home/home.component.ts:90,101,106-107` |
 | `[routerLink]` no card de atenção | `src/app/features/home/home.component.ts:67` |
 | `[value]` nas `<option>` dos selects | `src/app/features/admin/admin.component.ts:59,123,131` |
@@ -39,7 +40,7 @@ Base URL da API e credenciais: ver `../VISAO-GERAL.md`.
 
 | Onde | Arquivo:linha |
 |---|---|
-| `(ngSubmit)` no formulário de criar desafio | `src/app/features/admin/admin.component.ts:46` |
+| `(ngSubmit)` no formulário "Publicar modelo do programa" (C3) | `admin.component.ts` (form `(ngSubmit)="createChallenge()"`) |
 | `(ngSubmit)` no formulário de login | `src/app/features/login/login.component.ts` (form `(ngSubmit)="submit()"`) |
 | `(click)` "Sair" | `src/app/app.component.ts:24` |
 | `(click)` "Tentar de novo" nos indicadores | `src/app/features/home/home.component.ts:36` |
@@ -51,7 +52,7 @@ Base URL da API e credenciais: ver `../VISAO-GERAL.md`.
 | Onde | Arquivo:linha |
 |---|---|
 | E-mail e senha no `/login` | `src/app/features/login/login.component.ts:28,40` |
-| Formulário de criar desafio — os 5 campos | `src/app/features/admin/admin.component.ts:50,58,66,78,94` |
+| Formulário "Publicar modelo" (C3) — os 5 campos + tabela de modelos | `admin.component.ts` (title/category/description/totalDays/xpReward) |
 | Dropdowns de filtro + campo de busca em `/admin` | `src/app/features/admin/admin.component.ts:121,129,137` |
 
 ## 5. `*ngIf`
@@ -86,11 +87,11 @@ Nenhum componente injeta `HttpClient` — todos assinam os `Observable` dos serv
 
 | Onde | Arquivo:linha |
 |---|---|
-| Definição das rotas (lazy `loadComponent`) + `adminGuard` | `src/app/app.routes.ts:5-24` |
+| Definição das rotas (lazy `loadComponent`) + `adminGuard` | `src/app/app.routes.ts` |
 | Links de navegação | `src/app/app.component.ts:18-19` |
 | `<router-outlet>` | `src/app/app.component.ts` |
-| Interceptor de auth | `src/app/core/interceptors/auth.interceptor.ts:10` |
-| Guard | `src/app/core/guards/admin.guard.ts:6` |
+| Interceptor de auth (Bearer + refresh em 401) | `src/app/core/interceptors/auth.interceptor.ts` |
+| Guard (autenticação + papel ADMIN, A5) | `src/app/core/guards/admin.guard.ts` |
 
 ## 9. Estilização e feedback visual (loading / sucesso / erro / vazio)
 
@@ -102,3 +103,14 @@ Nenhum componente injeta `HttpClient` — todos assinam os `Observable` dos serv
 | Estado vazio | home (`state-empty` quando não há dados), admin (busca sem resultado, filtros sem resultado, sem usuários) |
 | Modal de confirmação | admin — exclusão de desafio (`.modal-backdrop`) |
 | Design tokens | `src/styles.css:1-16` — mesmos valores de `lib/core/constants/app_colors.dart` |
+
+---
+
+## Parte B — Dashboards (mesmos padrões, mais superfície)
+
+Os 3 painéis novos (`features/dashboards/{engajamento,risco,gamificacao}.component.ts`) e os
+componentes de gráfico (`shared/charts/`) usam exatamente os mesmos recursos já mapeados acima —
+`*ngIf`/`*ngFor` (estados loading/erro/vazio, listas), interpolação, property binding
+(`[data]`, `[series]`, `[ngStyle]`, `[style.*]`, `[ngClass]`), event binding (`(click)` nos
+seletores de período e retry), rotas lazy (`/dashboards/*` em `app.routes.ts`), `MetricasService`
+concentrando o HTTP. Gráficos são **SVG/CSS próprios** — nenhuma lib externa.

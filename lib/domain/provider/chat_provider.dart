@@ -65,7 +65,8 @@ class ChatProvider extends ChangeNotifier {
     } catch (_) {
       _messages.add(ChatMessage(
         role: ChatRole.assistant,
-        content: 'Não consegui me conectar. Verifique sua internet e tente de novo.',
+        content:
+            'Não consegui me conectar. Verifique sua internet e tente de novo.',
         sentAt: DateTime.now(),
         isError: true,
       ));

@@ -62,7 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Não foi possível conectar ao servidor. Tente novamente.');
+      setState(() =>
+          _error = 'Não foi possível conectar ao servidor. Tente novamente.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -98,8 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.surface,
-                        border:
-                            Border.all(color: AppColors.accent, width: 2),
+                        border: Border.all(color: AppColors.accent, width: 2),
                       ),
                       child: Center(
                         child: Text(
@@ -140,7 +140,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Seu nome',
                       hintText: 'Como podemos te chamar?',
-                      prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecond),
+                      prefixIcon: Icon(Icons.person_outline,
+                          color: AppColors.textSecond),
                     ),
                     textCapitalization: TextCapitalization.words,
                     validator: (v) => (v == null || v.trim().isEmpty)
@@ -158,11 +159,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: const InputDecoration(
                     labelText: 'E-mail',
                     hintText: 'voce@exemplo.com',
-                    prefixIcon: Icon(Icons.alternate_email, color: AppColors.textSecond),
+                    prefixIcon: Icon(Icons.alternate_email,
+                        color: AppColors.textSecond),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Insira seu e-mail';
-                    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())) {
+                    if (v == null || v.trim().isEmpty)
+                      return 'Insira seu e-mail';
+                    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                        .hasMatch(v.trim())) {
                       return 'E-mail inválido';
                     }
                     return null;
@@ -178,11 +182,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Senha',
                     hintText: 'Pelo menos 8 caracteres',
-                    prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecond),
+                    prefixIcon:
+                        Icon(Icons.lock_outline, color: AppColors.textSecond),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Insira sua senha';
-                    if (isSignup && v.length < 8) return 'Mínimo de 8 caracteres';
+                    if (isSignup && v.length < 8)
+                      return 'Mínimo de 8 caracteres';
                     return null;
                   },
                   onFieldSubmitted: (_) => _submit(),
@@ -196,11 +202,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFFDE350B).withAlpha(26),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFDE350B).withAlpha(102)),
+                      border: Border.all(
+                          color: const Color(0xFFDE350B).withAlpha(102)),
                     ),
                     child: Text(
                       _error!,
-                      style: const TextStyle(color: Color(0xFFFF8B8B), fontSize: 13),
+                      style: const TextStyle(
+                          color: Color(0xFFFF8B8B), fontSize: 13),
                     ),
                   ),
                 ],

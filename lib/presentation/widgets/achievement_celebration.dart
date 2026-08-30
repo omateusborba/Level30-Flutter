@@ -50,7 +50,8 @@ class _CelebrationDialog extends StatelessWidget {
                 child: Icon(a.icon, color: AppColors.accent, size: 32),
               )
                   .animate()
-                  .scale(begin: const Offset(0.6, 0.6), curve: Curves.easeOutBack)
+                  .scale(
+                      begin: const Offset(0.6, 0.6), curve: Curves.easeOutBack)
                   .then()
                   .shimmer(duration: 900.ms, color: AppColors.accent),
               const SizedBox(height: 10),
