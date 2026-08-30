@@ -1,6 +1,5 @@
-// Substituído no build de produção (angular.json > configurations.production > fileReplacements).
-// Ajuste apiBaseUrl para a URL pública da API (Cloudflare Tunnel → VM Oracle).
+// Build de produção (angular.json > configurations.production > fileReplacements).
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.SEU-DOMINIO.com',
+  apiBaseUrl: 'https://api.level30.online',
 };
