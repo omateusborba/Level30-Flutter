@@ -66,12 +66,29 @@ sem alterar `Challenge.fromJson` / `UserProfile.fromJson`. Contrato congelado em
 
 | Componente | URL |
 |---|---|
+| **Dashboard do Coordenador** | **[level30.online](https://level30.online)** |
 | **API — Swagger UI** | **[api.level30.online/swagger-ui.html](https://api.level30.online/swagger-ui.html)** |
 | API — base | `https://api.level30.online` |
-| Dashboard Angular | [level30.online](https://level30.online) |
 | Gateway de IA (Worker) | `https://level30-ai-gateway.mateusborbasouza.workers.dev` |
 
 O app Flutter (`lib/core/constants/app_config.dart`) já aponta para `https://api.level30.online` por padrão.
+
+### Acesso para avaliação — Dashboard
+
+**Site:** [level30.online](https://level30.online) — login de coordenador (perfil ADMIN)
+
+| E-mail | Senha |
+|---|---|
+| `admin@level30.online` | `L30adm-c44215d9` |
+
+> Credencial temporária, criada apenas para a avaliação desta fase — será substituída por autenticação via **Auth0** na próxima atualização.
+
+![Dashboard do Coordenador — aba Engajamento](docs/dashboard-engajamento.png)
+
+O dashboard tem cinco áreas: **Visão geral** (KPIs do programa), **Engajamento** (atividade
+diária, curva de sobrevivência, retenção por coorte), **Risco** (desafios em risco de abandono),
+**Gamificação** (conquistas, níveis, streaks) e **Administração** (usuários, desafios, criar
+desafio do programa).
 
 **Rodar tudo junto (local):**
 ```bash
