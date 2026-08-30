@@ -1,0 +1,8 @@
+# Ativar com: --spring.profiles.active=postgres
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/level30}
+    username: ${DB_USER:level30}
+    password: ${DB_PASSWORD:level30}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
