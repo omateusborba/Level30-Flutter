@@ -11,8 +11,10 @@ import com.level30.api.domain.model.User;
 import com.level30.api.dto.response.CompleteResponse;
 import com.level30.api.exception.RecursoNaoEncontradoException;
 import com.level30.api.exception.RegraNegocioException;
+import com.level30.api.repository.ChallengeCompletionRepository;
 import com.level30.api.repository.ChallengeRepository;
 import com.level30.api.repository.UserRepository;
+import java.time.LocalDate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -34,6 +36,8 @@ class ChallengeServiceTest {
     UserRepository users;
     @Autowired
     ChallengeRepository challenges;
+    @Autowired
+    ChallengeCompletionRepository completions;
 
     private User newUser() {
         return users.save(User.create("u" + UUID.randomUUID() + "@test.com", "x", "User", Role.USER));
@@ -60,6 +64,21 @@ class ChallengeServiceTest {
         assertThat(res.xpDelta()).isEqualTo(10);
         assertThat(res.totalXp()).isEqualTo(10);
         assertThat(users.findById(user.getId()).orElseThrow().getTotalXp()).isEqualTo(10);
+    }
+
+    @Test
+    void completarDia_gravaEventoNoHistorico() {
+        User user = newUser();
+        Challenge c = newChallenge(user, 4, 2, Instant.now().minus(1, ChronoUnit.DAYS));
+
+        challengeService.completeDay(user.getId(), c.getId());
+
+        var hist = completions.findByChallengeIdOrderByDayNumberAsc(c.getId());
+        assertThat(hist).hasSize(1);
+        assertThat(hist.get(0).getDayNumber()).isEqualTo(5);
+        assertThat(hist.get(0).getCompletedOn())
+                .isEqualTo(LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")));
+        assertThat(hist.get(0).getXpDelta()).isEqualTo(10);
     }
 
     @Test

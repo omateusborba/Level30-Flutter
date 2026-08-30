@@ -3,6 +3,7 @@ package com.level30.api.controller;
 import com.level30.api.dto.request.ChallengeRequest;
 import com.level30.api.dto.response.ChallengeResponse;
 import com.level30.api.dto.response.CompleteResponse;
+import com.level30.api.dto.response.CompletionResponse;
 import com.level30.api.dto.response.RecommendationResponse;
 import com.level30.api.security.AuthPrincipal;
 import com.level30.api.service.ChallengeService;
@@ -67,5 +68,12 @@ public class ChallengeController {
     public ResponseEntity<RecommendationResponse> recommendation(
             @AuthenticationPrincipal AuthPrincipal principal, @PathVariable UUID id) {
         return ResponseEntity.ok(challengeService.recommendation(principal.id(), id));
+    }
+
+    @GetMapping("/{id}/historico")
+    @Operation(summary = "Historico de conclusoes do desafio (F1)")
+    public List<CompletionResponse> historico(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable UUID id) {
+        return challengeService.historico(principal.id(), id);
     }
 }

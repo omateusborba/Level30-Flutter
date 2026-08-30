@@ -1,18 +1,24 @@
 package com.level30.api.controller;
 
 import com.level30.api.dto.request.AvatarRequest;
+import com.level30.api.dto.response.AtividadeDiaResponse;
 import com.level30.api.dto.response.UserResponse;
 import com.level30.api.security.AuthPrincipal;
+import com.level30.api.service.ChallengeService;
 import com.level30.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -21,9 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private final ChallengeService challengeService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, ChallengeService challengeService) {
         this.userService = userService;
+        this.challengeService = challengeService;
     }
 
     @GetMapping
@@ -37,5 +45,14 @@ public class UserController {
     public Map<String, String> updateAvatar(@AuthenticationPrincipal AuthPrincipal principal,
                                             @Valid @RequestBody AvatarRequest req) {
         return Map.of("avatar", userService.updateAvatar(principal.id(), req.avatar()));
+    }
+
+    @GetMapping("/atividade")
+    @Operation(summary = "Conclusoes por dia desde a data informada (heatmap)")
+    public List<AtividadeDiaResponse> atividade(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestParam(name = "desde")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde) {
+        return challengeService.atividade(principal.id(), desde);
     }
 }

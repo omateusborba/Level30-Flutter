@@ -1,18 +1,23 @@
 package com.level30.api.service;
 
 import com.level30.api.domain.model.Challenge;
+import com.level30.api.domain.model.ChallengeCompletion;
 import com.level30.api.domain.model.User;
 import com.level30.api.dto.request.ChallengeRequest;
+import com.level30.api.dto.response.AtividadeDiaResponse;
 import com.level30.api.dto.response.ChallengeResponse;
 import com.level30.api.dto.response.CompleteResponse;
+import com.level30.api.dto.response.CompletionResponse;
 import com.level30.api.dto.response.RecommendationResponse;
 import com.level30.api.exception.RecursoNaoEncontradoException;
 import com.level30.api.exception.RegraNegocioException;
+import com.level30.api.repository.ChallengeCompletionRepository;
 import com.level30.api.repository.ChallengeRepository;
 import com.level30.api.repository.UserRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -27,12 +32,16 @@ public class ChallengeService {
     static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
 
     private final ChallengeRepository challenges;
+    private final ChallengeCompletionRepository completions;
     private final UserRepository users;
     private final AiGatewayService aiGateway;
 
-    public ChallengeService(ChallengeRepository challenges, UserRepository users,
+    public ChallengeService(ChallengeRepository challenges,
+                            ChallengeCompletionRepository completions,
+                            UserRepository users,
                             AiGatewayService aiGateway) {
         this.challenges = challenges;
+        this.completions = completions;
         this.users = users;
         this.aiGateway = aiGateway;
     }
@@ -80,7 +89,8 @@ public class ChallengeService {
         }
 
         int xpBefore = c.earnedXp();
-        c.setCurrentDay(c.getCurrentDay() + 1);
+        int nextDay = c.getCurrentDay() + 1;
+        c.setCurrentDay(nextDay);
         c.setStreak(nextStreak(c, hoje));
         c.setLastActivityAt(now);
         int xpAfter = c.earnedXp();
@@ -89,11 +99,29 @@ public class ChallengeService {
         User user = c.getUser();
         user.setTotalXp(user.getTotalXp() + xpDelta);
 
-        // Ambas as escritas fecham na mesma transação (@Transactional).
+        // As três escritas fecham na mesma transação (@Transactional).
+        // A UNIQUE (challenge_id, completed_on) é a defesa de banco contra dia duplicado.
         challenges.save(c);
         users.save(user);
+        completions.save(ChallengeCompletion.of(c, nextDay, hoje, xpDelta));
 
         return new CompleteResponse(ChallengeResponse.from(c), xpDelta, user.getTotalXp());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompletionResponse> historico(UUID userId, UUID challengeId) {
+        ownedOrNotFound(userId, challengeId); // valida posse
+        return completions.findByChallengeIdOrderByDayNumberAsc(challengeId).stream()
+                .map(CompletionResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AtividadeDiaResponse> atividade(UUID userId, LocalDate desde) {
+        return completions.atividadePorDia(userId, desde).stream()
+                .map(v -> new AtividadeDiaResponse(
+                        DateTimeFormatter.ISO_LOCAL_DATE.format(v.getData()), v.getQuantidade()))
+                .toList();
     }
 
     @Transactional
