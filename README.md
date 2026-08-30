@@ -36,7 +36,35 @@ O sistema **Smart HAS** (Smart Habit Acceleration System) combina:
 - **Foto de perfil** — captura por câmera ou galeria, com upload para o backend
 - **Integração com APIs reais** — clima em tempo real (Open-Meteo) e citações motivacionais (ZenQuotes)
 
-> Projeto desenvolvido para o **Enterprise Challenge 2026 — Fase 4 (FIAP)**, avaliado pela **Leroy Merlin**. Multiplataforma: **Android e iOS**.
+> Projeto desenvolvido para o **Enterprise Challenge 2026 (FIAP)**, avaliado pela **Leroy Merlin**. Multiplataforma: **Android e iOS**.
+
+---
+
+## Fase 5 — três aplicações, um contrato
+
+A partir da Fase 5 (atividade "Mobile Hybrid App e a Sociedade 5.0"), o projeto é composto por
+**três aplicações sobre a mesma API**:
+
+| App | Pasta | Stack | Papel |
+|---|---|---|---|
+| **App mobile** | `lib/` | Flutter (`provider`) | experiência do estudante |
+| **API / núcleo de domínio** | `backend/` | **Java + Spring Boot** | fonte única de verdade: auth, desafios, risco, admin |
+| **Dashboard administrativo** | `dashboard/` | **Angular 18** | visão agregada do programa (coordenação) |
+| Gateway de IA | `server/` | Cloudflare Worker | único caminho até o Workers AI; agora também proxy do Spring Boot |
+
+O Spring Boot **replica exatamente** o contrato JSON que o Worker já produzia — o app Flutter roda
+sem alterar `Challenge.fromJson` / `UserProfile.fromJson`. Contrato congelado em
+[`specs/003-fase-5/contract.md`](specs/003-fase-5/contract.md). Planejamento e status em
+[`specs/003-fase-5/`](specs/003-fase-5/) (`backlog-po.md`, `STATUS.md`). Visão técnica do app em
+[`PROJECT.md`](PROJECT.md).
+
+**Rodar tudo junto:**
+```bash
+cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run   # API :8080 + Swagger em /swagger-ui.html
+cd dashboard && npm install && npm start                                       # dashboard :4200
+flutter run --dart-define=API_BASE_URL=http://localhost:8080                    # app apontando pro backend local
+```
+Seed: `admin@level30.app` / `admin1234` (ADMIN) · `ana@level30.app` / `estudante1` (USER).
 
 ---
 

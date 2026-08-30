@@ -54,7 +54,20 @@ android/.gradle/
 google-services.json
 GoogleService-Info.plist
 
-# Node / Cloudflare Worker (server/)
+# Node / Cloudflare Worker (server/) e dashboard Angular (dashboard/)
 node_modules/
 .wrangler/
 .dev.vars
+/dashboard/dist/
+/dashboard/.angular/
+
+# Backend Spring Boot (backend/)
+/backend/target/
+/backend/data/
+
+# Deploy — segredos nunca versionados
+/deploy/.env
+
+# Material de apoio (repositório git separado, fora do build)
+/agents/
+
