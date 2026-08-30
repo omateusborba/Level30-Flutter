@@ -97,7 +97,24 @@ flutter run --dart-define=API_BASE_URL=http://localhost:8080
 Seed: `admin@level30.app` / `admin1234` (ADMIN) · `ana@level30.app` etc. / `estudante1` (USER).
 Admin do seed é configurável por env: `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
 
-## Deploy — Opção C (grátis, JAR fora da Cloudflare) — 🟡 preparado, aguarda execução
+## Deploy — Opção C — ✅ NO AR (2026-08-30)
+
+| Componente | URL | Host |
+|---|---|---|
+| API Spring Boot | `https://api.level30.online` | VM Oracle `163.176.184.11` (E2.1.Micro 1 GB + 4 GB swap) via Cloudflare Tunnel `level30` |
+| Dashboard Angular | `https://level30.online` | Cloudflare Pages (`level30-flutter`, branch `main`, root `dashboard`) |
+| Worker de IA | `https://level30-ai-gateway.mateusborbasouza.workers.dev` | Cloudflare Workers (conta `mateusborbasouza@gmail.com`) |
+
+Verificado ponta a ponta: login admin, `/admin/**`, CORS `https://level30.online`, chat + recomendação
+com `aiGenerated: true` (Spring → Worker → Workers AI), RBAC, e teste de integração Flutter contra o
+backend real (3/3). App (`lib/core/constants/app_config.dart`) já aponta para `https://api.level30.online`.
+
+Operação da VM: `ssh ubuntu@163.176.184.11` · `cd ~/Level30-Flutter/deploy` · `sudo docker compose {ps,logs,restart}`.
+Atualizar: `git pull && sudo docker compose up -d --build` (jar é buildado no Mac e copiado — VM de 1 GB não roda Maven).
+
+---
+
+## (histórico) Deploy — Opção C — preparação
 
 Guia completo: [`deploy-oracle.md`](deploy-oracle.md).
 
