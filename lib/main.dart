@@ -20,6 +20,8 @@ import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/map_screen.dart';
 import 'presentation/screens/notifications_screen.dart';
 import 'presentation/screens/profile_screen.dart';
+import 'presentation/screens/programa_screen.dart';
+import 'presentation/screens/progress_screen.dart';
 import 'presentation/screens/splash_screen.dart';
 
 void main() async {
@@ -60,17 +62,19 @@ class Level30App extends StatelessWidget {
         theme: AppTheme.dark,
         initialRoute: '/splash',
         routes: {
-          '/splash'       : (_) => const SplashScreen(),
-          '/login'        : (_) => const LoginScreen(),
-          '/home'         : (_) => ShowCaseWidget(
-            onFinish: () => OnboardingService.markAsSeen(),
-            builder: (ctx) => const HomeScreen(),
-          ),
-          '/profile'      : (_) => const ProfileScreen(),
-          '/map'          : (_) => const MapScreen(),
-          '/create_challenge' : (_) => const CreateChallengeScreen(),
+          '/splash': (_) => const SplashScreen(),
+          '/login': (_) => const LoginScreen(),
+          '/home': (_) => ShowCaseWidget(
+                onFinish: () => OnboardingService.markAsSeen(),
+                builder: (ctx) => const HomeScreen(),
+              ),
+          '/profile': (_) => const ProfileScreen(),
+          '/progress': (_) => const ProgressScreen(),
+          '/programa': (_) => const ProgramaScreen(),
+          '/map': (_) => const MapScreen(),
+          '/create_challenge': (_) => const CreateChallengeScreen(),
           '/notifications': (_) => const NotificationsScreen(),
-          '/chat'         : (_) => const ChatScreen(),
+          '/chat': (_) => const ChatScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/challenge') {

@@ -2,7 +2,23 @@
 
 Painel administrativo web do projeto Level30 (FIAP — "Mobile Hybrid App e a
 Sociedade 5.0", Fase 5). Consome a **mesma API Spring Boot** do app Flutter,
-apenas os endpoints `/auth/**` e `/admin/**` + `POST`/`DELETE` de `/challenges`.
+apenas os endpoints `/auth/**`, `/admin/**` e `POST`/`DELETE` de `/challenges`.
+
+## Rodar localmente
+
+```bash
+npm ci
+npm start          # ng serve em :4200
+```
+
+> ⚠️ `npm start` aponta para `http://localhost:8080` (`src/environments/environment.ts`).
+> Suba o backend antes (`cd ../backend && JAVA_HOME=/opt/homebrew/opt/openjdk@21 mvn spring-boot:run`)
+> ou edite `environment.ts` para `https://api.level30.online`. Sem backend, toda tela mostra
+> "Não foi possível falar com a API".
+
+```bash
+npm run build -- --configuration production   # gera dist/dashboard/browser
+```
 
 Angular 18 · standalone components (sem NgModule) · sem libs de UI/chart.
 

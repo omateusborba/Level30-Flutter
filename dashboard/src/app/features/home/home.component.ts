@@ -1,16 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { NgForOf, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminChallenge, Distribuicao, Indicadores } from '../../core/models';
 import { apiErrorMessage } from '../../core/http-error.util';
 import { CategoriaLabelPipe, RiscoLabelPipe } from '../../shared/pipes/rotulos.pipe';
+import { IconComponent, IconName } from '../../shared/ui/icon.component';
 
 interface Kpi {
   label: string;
   value: number;
-  icon: SafeHtml;
+  icon: IconName;
 }
 
 const RISK_COLORS: Record<string, string> = {
@@ -23,7 +23,7 @@ const RISK_COLORS: Record<string, string> = {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [NgIf, NgForOf, RouterLink, CategoriaLabelPipe, RiscoLabelPipe],
+  imports: [NgIf, NgForOf, RouterLink, CategoriaLabelPipe, RiscoLabelPipe, IconComponent],
   template: `
     <h1>Indicadores do programa</h1>
 
@@ -53,7 +53,7 @@ const RISK_COLORS: Record<string, string> = {
         <!-- KPIs -->
         <section class="section grid kpi-grid">
           <div class="card kpi" *ngFor="let k of kpis">
-            <span class="kpi-icon" [innerHTML]="k.icon"></span>
+            <span class="kpi-icon"><app-icon [name]="k.icon" /></span>
             <div>
               <div class="label">{{ k.label }}</div>
               <div class="value">{{ k.value }}</div>
@@ -122,19 +122,7 @@ export class HomeComponent implements OnInit {
   kpis: Kpi[] = [];
   atencao: AdminChallenge[] = [];
 
-  private readonly icons: Record<string, SafeHtml>;
-
-  constructor(private admin: AdminService, sanitizer: DomSanitizer) {
-    const s = (p: string): SafeHtml => sanitizer.bypassSecurityTrustHtml(svg(p));
-    this.icons = {
-      users: s('M16 14a4 4 0 1 0-8 0M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6'),
-      grid: s('M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'),
-      check: s('M20 6 9 17l-5-5'),
-      warn: s('M12 3 2 20h20zM12 10v4M12 17h.01'),
-      bolt: s('M13 2 3 14h7l-1 8 10-12h-7z'),
-      fire: s('M12 3c1 3-2 5-2 8a4 4 0 0 0 8 0c0-2-1-3-2-4 0 2-1 3-2 3 1-4-1-7 0-10z'),
-    };
-  }
+  constructor(private admin: AdminService) {}
 
   get vazio(): boolean {
     return !!this.data && this.data.totalDesafios === 0 && this.data.totalUsuarios <= 1;
@@ -151,12 +139,12 @@ export class HomeComponent implements OnInit {
       next: (res) => {
         this.data = res;
         this.kpis = [
-          { label: 'Usuários', value: res.totalUsuarios, icon: this.icons['users'] },
-          { label: 'Desafios', value: res.totalDesafios, icon: this.icons['grid'] },
-          { label: 'Concluídos', value: res.desafiosConcluidos, icon: this.icons['check'] },
-          { label: 'Em risco', value: res.desafiosEmRisco, icon: this.icons['warn'] },
-          { label: 'XP médio / usuário', value: res.xpMedioPorUsuario, icon: this.icons['bolt'] },
-          { label: 'Melhor streak', value: res.melhorStreak, icon: this.icons['fire'] },
+          { label: 'Usuários', value: res.totalUsuarios, icon: 'users' },
+          { label: 'Desafios', value: res.totalDesafios, icon: 'grid' },
+          { label: 'Concluídos', value: res.desafiosConcluidos, icon: 'check' },
+          { label: 'Em risco', value: res.desafiosEmRisco, icon: 'warn' },
+          { label: 'XP médio / usuário', value: res.xpMedioPorUsuario, icon: 'bolt' },
+          { label: 'Melhor streak', value: res.melhorStreak, icon: 'fire' },
         ];
         this.loading = false;
       },
@@ -186,8 +174,4 @@ export class HomeComponent implements OnInit {
   riskColor(chave: string): string {
     return RISK_COLORS[chave] ?? 'var(--accent)';
   }
-}
-
-function svg(path: string): string {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
 }

@@ -8,14 +8,17 @@ import { AuthService } from './core/services/auth.service';
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIf],
   template: `
-    <ng-container *ngIf="auth.isAuthenticated(); else bare">
+    <ng-container *ngIf="auth.isAdmin(); else bare">
       <header class="topbar">
         <div class="brand">
           <span class="logo">L30</span>
           <span>Level30 · Painel do Coordenador</span>
         </div>
         <nav class="nav">
-          <a routerLink="/home" routerLinkActive="active">Indicadores</a>
+          <a routerLink="/home" routerLinkActive="active">Visão geral</a>
+          <a routerLink="/dashboards/engajamento" routerLinkActive="active">Engajamento</a>
+          <a routerLink="/dashboards/risco" routerLinkActive="active">Risco</a>
+          <a routerLink="/dashboards/gamificacao" routerLinkActive="active">Gamificação</a>
           <a routerLink="/admin" routerLinkActive="active">Administração</a>
         </nav>
         <div class="account">

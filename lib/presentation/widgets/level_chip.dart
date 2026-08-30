@@ -25,7 +25,8 @@ class LevelChip extends StatelessWidget {
         children: [
           Text.rich(
             TextSpan(
-              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600),
+              style: GoogleFonts.poppins(
+                  fontSize: 12, fontWeight: FontWeight.w600),
               children: [
                 TextSpan(
                     text: 'Nv ${p.level}',

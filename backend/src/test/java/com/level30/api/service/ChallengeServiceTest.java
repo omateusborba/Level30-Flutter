@@ -97,6 +97,21 @@ class ChallengeServiceTest {
     }
 
     @Test
+    void completarDia_gravaNotaOpcional() {
+        User user = newUser();
+        Challenge c = newChallenge(user, 4, 2, Instant.now().minus(1, ChronoUnit.DAYS));
+
+        challengeService.completeDay(user.getId(), c.getId(), "  li 15 paginas  ");
+        assertThat(completions.findByChallengeIdOrderByDayNumberAsc(c.getId()).get(0).getNote())
+                .isEqualTo("li 15 paginas");
+
+        Challenge c2 = newChallenge(user, 4, 2, Instant.now().minus(1, ChronoUnit.DAYS));
+        challengeService.completeDay(user.getId(), c2.getId(), "   ");
+        assertThat(completions.findByChallengeIdOrderByDayNumberAsc(c2.getId()).get(0).getNote())
+                .isNull();
+    }
+
+    @Test
     void completarDia_segundaVezNoMesmoDia_retorna409() {
         User user = newUser();
         Challenge c = newChallenge(user, 4, 2, Instant.now().minus(1, ChronoUnit.DAYS));

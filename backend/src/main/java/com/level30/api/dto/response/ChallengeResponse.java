@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter;
  *   <li>chaves em camelCase</li>
  *   <li>{@code category} em minúsculas (via {@link com.level30.api.domain.model.Category})</li>
  *   <li>{@code lastActivityAt}: string ISO-8601 com {@code Z}, ou {@code null}</li>
+ *   <li>{@code createdAt}: string ISO-8601 com {@code Z} — adição aditiva (C1, grade de dias)</li>
  * </ul>
  */
 public record ChallengeResponse(
@@ -22,7 +23,9 @@ public record ChallengeResponse(
         int currentDay,
         int xpReward,
         int streak,
-        String lastActivityAt
+        String lastActivityAt,
+        String createdAt,
+        int replanCount
 ) {
     public static ChallengeResponse from(Challenge c) {
         return new ChallengeResponse(
@@ -36,7 +39,11 @@ public record ChallengeResponse(
                 c.getStreak(),
                 c.getLastActivityAt() == null
                         ? null
-                        : DateTimeFormatter.ISO_INSTANT.format(c.getLastActivityAt())
+                        : DateTimeFormatter.ISO_INSTANT.format(c.getLastActivityAt()),
+                c.getCreatedAt() == null
+                        ? null
+                        : DateTimeFormatter.ISO_INSTANT.format(c.getCreatedAt()),
+                c.getReplanCount()
         );
     }
 }

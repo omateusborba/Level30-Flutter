@@ -33,6 +33,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), List.of());
     }
 
+    @ExceptionHandler(ContaBloqueadaException.class)
+    public ResponseEntity<ErroResponse> handleBloqueio(ContaBloqueadaException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
+                .body(ErroResponse.of(HttpStatus.TOO_MANY_REQUESTS.value(), ex.getMessage(), List.of()));
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErroResponse> handleAuth(AuthenticationException ex) {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), List.of());

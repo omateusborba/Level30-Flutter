@@ -104,9 +104,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 fontWeight: FontWeight.w500,
                 letterSpacing: 4,
               ),
-            )
-                .animate()
-                .fadeIn(delay: 500.ms, duration: 500.ms),
+            ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
             const SizedBox(height: 60),
             Text(
               'Gamificação de Hábitos Acadêmicos',

@@ -60,7 +60,21 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void ensureAdmin() {
-        if (users.findByEmail(adminEmail).isPresent()) {
+        var existing = users.findByEmail(adminEmail);
+        if (existing.isPresent()) {
+            // Reconcilia a senha: se SEED_ADMIN_PASSWORD mudou (rotacao de credencial),
+            // o hash em banco e atualizado no proximo boot. Sem isso, trocar a env var
+            // nao surtia efeito em conta ja criada.
+            User admin = existing.get();
+            if (!passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
+                admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+                users.save(admin);
+                log.warn("Admin {}: senha reconciliada a partir de SEED_ADMIN_PASSWORD.", adminEmail);
+            }
+            if (admin.getRole() != Role.ADMIN) {
+                admin.setRole(Role.ADMIN);
+                users.save(admin);
+            }
             return;
         }
         users.save(User.create(adminEmail, passwordEncoder.encode(adminPassword), "Coordenacao", Role.ADMIN));

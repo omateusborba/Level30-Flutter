@@ -239,7 +239,7 @@ class _QuickReplies extends StatelessWidget {
                 style: GoogleFonts.poppins(
                     color: AppColors.textPrimary, fontSize: 12)),
             backgroundColor: AppColors.surface,
-            side: BorderSide(color: AppColors.primary.withAlpha(120)),
+            side: const BorderSide(color: AppColors.border),
             onPressed: onTap == null ? null : () => onTap!(question),
           );
         },
@@ -294,7 +294,7 @@ class _InputBar extends StatelessWidget {
               onPressed: enabled ? () => onSend(controller.text) : null,
               style: IconButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                disabledBackgroundColor: AppColors.primary,
+                disabledBackgroundColor: AppColors.surface2,
               ),
               icon: Icon(Icons.send_rounded,
                   color: enabled ? AppColors.background : AppColors.textSecond),

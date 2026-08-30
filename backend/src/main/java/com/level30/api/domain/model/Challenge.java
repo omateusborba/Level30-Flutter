@@ -58,6 +58,25 @@ public class Challenge {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** B1 — risco materializado (cache do RiskEngine). Recalculado em completeDay + job diário. */
+    @Column(name = "risk_score", nullable = false)
+    private double riskScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "risk_level", nullable = false, length = 20)
+    private RiskLevel riskLevel = RiskLevel.LOW;
+
+    @Column(name = "risk_updated_at")
+    private Instant riskUpdatedAt;
+
+    /** C2 — quantas vezes o desafio foi replanejado (máx. 2). */
+    @Column(name = "replan_count", nullable = false)
+    private int replanCount;
+
+    /** C3 — modelo do programa de onde este desafio foi adotado (null = criado do zero). */
+    @Column(name = "program_challenge_id")
+    private UUID programChallengeId;
+
     public static Challenge create(User user, String title, Category category, String description,
                                    int totalDays, int xpReward) {
         Challenge c = new Challenge();

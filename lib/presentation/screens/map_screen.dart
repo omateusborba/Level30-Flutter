@@ -33,14 +33,23 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _initLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) { _buildMarkers(_spFallback); return; }
+      if (!serviceEnabled) {
+        _buildMarkers(_spFallback);
+        return;
+      }
 
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
-        if (perm == LocationPermission.denied) { _buildMarkers(_spFallback); return; }
+        if (perm == LocationPermission.denied) {
+          _buildMarkers(_spFallback);
+          return;
+        }
       }
-      if (perm == LocationPermission.deniedForever) { _buildMarkers(_spFallback); return; }
+      if (perm == LocationPermission.deniedForever) {
+        _buildMarkers(_spFallback);
+        return;
+      }
 
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -50,7 +59,10 @@ class _MapScreenState extends State<MapScreen> {
       );
       if (!mounted) return;
       final loc = LatLng(pos.latitude, pos.longitude);
-      setState(() { _userLocation = loc; _locationLoaded = true; });
+      setState(() {
+        _userLocation = loc;
+        _locationLoaded = true;
+      });
       _buildMarkers(loc);
       _mapController.move(loc, 14);
     } catch (_) {
@@ -76,9 +88,12 @@ class _MapScreenState extends State<MapScreen> {
             color: AppColors.accent,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [BoxShadow(color: AppColors.accent.withAlpha(100), blurRadius: 8)],
+            boxShadow: [
+              BoxShadow(color: AppColors.accent.withAlpha(100), blurRadius: 8)
+            ],
           ),
-          child: const Icon(Icons.person, color: AppColors.background, size: 22),
+          child:
+              const Icon(Icons.person, color: AppColors.background, size: 22),
         ),
       ),
     ));
@@ -118,10 +133,13 @@ class _MapScreenState extends State<MapScreen> {
                   color: color,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [BoxShadow(color: color.withAlpha(120), blurRadius: 6)],
+                  boxShadow: [
+                    BoxShadow(color: color.withAlpha(120), blurRadius: 6)
+                  ],
                 ),
                 child: Center(
-                  child: Text(c.category.emoji, style: const TextStyle(fontSize: 18)),
+                  child: Text(c.category.emoji,
+                      style: const TextStyle(fontSize: 18)),
                 ),
               ),
               Container(width: 3, height: 12, color: color),
@@ -147,7 +165,11 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
 
-    if (mounted) setState(() { _markers = markers; _circles = circles; });
+    if (mounted)
+      setState(() {
+        _markers = markers;
+        _circles = circles;
+      });
   }
 
   void _showInfo(Challenge c, double riskScore) {
@@ -165,7 +187,8 @@ class _MapScreenState extends State<MapScreen> {
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
@@ -176,12 +199,15 @@ class _MapScreenState extends State<MapScreen> {
             Row(
               children: [
                 Container(
-                  width: 44, height: 44,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: c.category.color.withAlpha(40),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Center(child: Text(c.category.emoji, style: const TextStyle(fontSize: 22))),
+                  child: Center(
+                      child: Text(c.category.emoji,
+                          style: const TextStyle(fontSize: 22))),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -203,11 +229,14 @@ class _MapScreenState extends State<MapScreen> {
             ),
             const SizedBox(height: 14),
             Row(children: [
-              _Chip('Dia ${c.currentDay}/${c.totalDays}', Icons.calendar_today_outlined),
+              _Chip('Dia ${c.currentDay}/${c.totalDays}',
+                  Icons.calendar_today_outlined),
               const SizedBox(width: 8),
-              _Chip('${c.streak} dias 🔥', Icons.local_fire_department_outlined),
+              _Chip(
+                  '${c.streak} dias 🔥', Icons.local_fire_department_outlined),
               const SizedBox(width: 8),
-              _Chip('Risco ${(riskScore * 100).toInt()}%', Icons.warning_amber_outlined),
+              _Chip('Risco ${(riskScore * 100).toInt()}%',
+                  Icons.warning_amber_outlined),
             ]),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -299,14 +328,16 @@ class _MapScreenState extends State<MapScreen> {
               right: 0,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.border),
                   ),
                   child: const Text('📍 São Paulo (localização padrão)',
-                      style: TextStyle(color: AppColors.textSecond, fontSize: 12)),
+                      style:
+                          TextStyle(color: AppColors.textSecond, fontSize: 12)),
                 ),
               ),
             ),
@@ -325,14 +356,15 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: AppColors.surface2,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, color: AppColors.textSecond, size: 11),
           const SizedBox(width: 4),
           Text(label,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 11)),
+              style:
+                  const TextStyle(color: AppColors.textPrimary, fontSize: 11)),
         ]),
       );
 }
@@ -361,7 +393,8 @@ class _Legend extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               'Posição do desafio é ilustrativa, calculada a partir da sua localização.',
-              style: TextStyle(color: AppColors.textSecond, fontSize: 10, height: 1.3),
+              style: TextStyle(
+                  color: AppColors.textSecond, fontSize: 10, height: 1.3),
             ),
           ],
         ),
@@ -378,11 +411,13 @@ class _LegendDot extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-              width: 10, height: 10,
+              width: 10,
+              height: 10,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Text(label,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 11)),
+              style:
+                  const TextStyle(color: AppColors.textPrimary, fontSize: 11)),
         ],
       );
 }

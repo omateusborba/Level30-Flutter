@@ -48,6 +48,11 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<void> logout(String refreshToken) async {
+    await _api.post('/auth/logout', {'refreshToken': refreshToken});
+  }
+
+  @override
   Future<String> updateAvatar(String avatarDataUri) async {
     final res = await _api.put('/me/avatar', {'avatar': avatarDataUri})
         as Map<String, dynamic>;

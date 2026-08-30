@@ -86,6 +86,39 @@ public class AiGatewayService {
         return new RecommendationResponse(fallbackMessage(c, level), score, level, false);
     }
 
+    public record AiText(String message, boolean aiGenerated) {}
+
+    /** C2 — frase de apoio ao replanejamento. Nunca lança: cai no texto determinístico. */
+    public AiText replanText(Challenge c, int novosDias) {
+        String fallback = "Sem pressa — estender \"" + c.getTitle() + "\" para " + novosDias
+                + " dias te dá fôlego pra retomar o ritmo. O que importa e nao parar.";
+        if (!gatewayConfigured()) {
+            return new AiText(fallback, false);
+        }
+        try {
+            Map<?, ?> body = restClient.post()
+                    .uri(workerUrl + "/internal/chat")
+                    .header("X-Service-Token", serviceToken)
+                    .body(Map.of(
+                            "system", "Voce e o Guia do Level30, um mentor de habitos. "
+                                    + "Responda em 1 ou 2 frases, tom encorajador, em portugues do Brasil.",
+                            "message", "O aluno esta no dia " + c.getCurrentDay() + " de "
+                                    + c.getTotalDays() + " do desafio \"" + c.getTitle()
+                                    + "\" e quer replanejar para " + novosDias
+                                    + " dias. Escreva uma mensagem curta apoiando essa decisao.",
+                            "history", List.of()))
+                    .retrieve()
+                    .body(Map.class);
+            Object message = body == null ? null : body.get("message");
+            if (message instanceof String s && !s.isBlank()) {
+                return new AiText(s.trim(), true);
+            }
+        } catch (Exception ex) {
+            log.warn("Gateway de IA falhou em replanText: {}", ex.getMessage());
+        }
+        return new AiText(fallback, false);
+    }
+
     public ChatResponse chat(String systemContext, ChatRequest req) {
         if (!gatewayConfigured()) {
             throw new AiIndisponivelException("Assistente indisponivel no momento. Tente novamente.");

@@ -16,8 +16,10 @@ const _enabled = bool.fromEnvironment('BACKEND_IT', defaultValue: false);
 
 void main() {
   if (!_enabled) {
-    test('backend integration (desligado — passe --dart-define=BACKEND_IT=true)',
-        () {}, skip: true);
+    test(
+        'backend integration (desligado — passe --dart-define=BACKEND_IT=true)',
+        () {},
+        skip: true);
     return;
   }
 
@@ -73,12 +75,14 @@ void main() {
     // 2º complete no mesmo dia -> 409 propagado como ApiException
     await expectLater(
       challengeRepo.completeDay(created.id),
-      throwsA(isA<ApiException>().having((e) => e.statusCode, 'statusCode', 409)),
+      throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 409)),
     );
 
     final rec = await challengeRepo.recommendation(created.id);
     expect(rec.message, isNotEmpty);
-    expect(rec.aiGenerated, isA<bool>()); // true se o gateway de IA estiver ligado, senão fallback
+    expect(rec.aiGenerated,
+        isA<bool>()); // true se o gateway de IA estiver ligado, senão fallback
 
     await challengeRepo.delete(created.id);
     expect(await challengeRepo.list(), isEmpty);

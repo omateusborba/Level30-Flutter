@@ -1,0 +1,18 @@
+# Config do gitleaks. Estende as regras padrao e libera valores
+# reconhecidamente nao-secretos (placeholders, segredos dev-only, fixtures de teste).
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders e segredos dev-only que nao sao credenciais reais"
+regexes = [
+  '''dev-only-insecure-secret-please-change-me-0+''',
+  '''test-secret-test-secret-test-secret-test-secret-0123456789''',
+  '''cole-aqui-64-hex-de-openssl-rand-hex-32''',
+  '''cole-o-token-do-tunnel-aqui''',
+]
+paths = [
+  '''deploy/\.env\.example''',
+  '''.*/application-test\.yml''',
+]

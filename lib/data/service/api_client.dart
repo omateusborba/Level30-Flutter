@@ -23,6 +23,13 @@ class ApiException implements Exception {
 /// access token voltar, ele é aplicado (e propagado por [onAccessTokenRefreshed])
 /// e a requisição original é repetida uma vez. Nunca há mais de uma tentativa
 /// de refresh por requisição — sem loop.
+///
+/// A2 (rotação): o servidor devolve um refresh token NOVO a cada `/auth/refresh`
+/// e invalida o anterior. É obrigatório persistir o novo via
+/// [onRefreshTokenRotated] — senão a próxima renovação reapresenta um token já
+/// consumido e o servidor derruba a sessão (detecção de reuso). Refreshes
+/// concorrentes são serializados ([_refreshInFlight]) para não reapresentar o
+/// mesmo token em duas chamadas.
 class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
@@ -36,12 +43,18 @@ class ApiClient {
   /// Persiste o novo access token obtido no refresh. Ligado pelo UserProvider.
   void Function(String newAccessToken)? onAccessTokenRefreshed;
 
+  /// Persiste o refresh token rotacionado (A2). Ligado pelo UserProvider.
+  void Function(String newRefreshToken)? onRefreshTokenRotated;
+
+  /// Refresh em andamento — evita duas chamadas reapresentarem o mesmo token.
+  Future<bool>? _refreshInFlight;
+
   Uri _uri(String path) => Uri.parse('${AppConfig.apiBaseUrl}$path');
 
   Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    if (token != null) 'Authorization': 'Bearer $token',
-  };
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
 
   Future<http.Response> _dispatch(
     String method,
@@ -83,9 +96,16 @@ class ApiClient {
     return _handle(res);
   }
 
-  /// Tenta obter um novo access token. Retorna `true` se conseguiu.
+  /// Tenta obter um novo par de tokens. Retorna `true` se conseguiu.
   /// Não lança — qualquer falha resulta em `false` (cai no fluxo de 401).
-  Future<bool> _tryRefresh() async {
+  /// Serializa chamadas concorrentes: só um `/auth/refresh` por vez.
+  Future<bool> _tryRefresh() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
+
+  Future<bool> _doRefresh() async {
     final refreshToken = await readRefreshToken?.call();
     if (refreshToken == null || refreshToken.isEmpty) return false;
     try {
@@ -98,11 +118,17 @@ class ApiClient {
           .timeout(const Duration(seconds: 15));
       if (res.statusCode < 200 || res.statusCode >= 300) return false;
       final decoded = res.body.isEmpty ? null : jsonDecode(res.body);
+      if (decoded is! Map) return false;
       final newToken =
-          (decoded is Map && decoded['token'] is String) ? decoded['token'] as String : null;
+          decoded['token'] is String ? decoded['token'] as String : null;
       if (newToken == null) return false;
       token = newToken;
       onAccessTokenRefreshed?.call(newToken);
+      // A2: persiste o refresh token rotacionado (obrigatório).
+      final rotated = decoded['refreshToken'];
+      if (rotated is String && rotated.isNotEmpty) {
+        onRefreshTokenRotated?.call(rotated);
+      }
       return true;
     } catch (_) {
       return false;

@@ -15,4 +15,13 @@ public interface UserAchievementRepository
 
     @Query("select a.achievementId from UserAchievement a where a.userId = :userId")
     Set<String> idsByUser(@Param("userId") UUID userId);
+
+    @Query("select a.achievementId as chave, count(a) as quantidade from UserAchievement a group by a.achievementId")
+    List<ContagemAchievementView> contagemPorAchievement();
+
+    interface ContagemAchievementView {
+        String getChave();
+
+        long getQuantidade();
+    }
 }

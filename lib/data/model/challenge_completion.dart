@@ -21,15 +21,23 @@ class ChallengeCompletion {
       );
 }
 
-/// Item de GET /me/atividade — conclusões por dia, para o heatmap.
+/// Item de GET /me/atividade — conclusões e XP por dia (heatmap + "Meu Progresso").
 class AtividadeDia {
   final DateTime data;
   final int quantidade;
 
-  const AtividadeDia({required this.data, required this.quantidade});
+  /// XP ganho no dia. Aditivo (B6) — 0 em respostas antigas.
+  final int xp;
+
+  const AtividadeDia({
+    required this.data,
+    required this.quantidade,
+    this.xp = 0,
+  });
 
   factory AtividadeDia.fromJson(Map<String, dynamic> json) => AtividadeDia(
         data: DateTime.parse(json['data'] as String),
         quantidade: json['quantidade'] as int,
+        xp: (json['xp'] as num?)?.toInt() ?? 0,
       );
 }

@@ -67,9 +67,9 @@ class ChallengeCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: challenge.progress,
-                          backgroundColor: AppColors.primary,
-                          valueColor: const AlwaysStoppedAnimation(
-                              AppColors.accent),
+                          backgroundColor: AppColors.surface2,
+                          valueColor:
+                              const AlwaysStoppedAnimation(AppColors.accent),
                           minHeight: 6,
                         ),
                       ),

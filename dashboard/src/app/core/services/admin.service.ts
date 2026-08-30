@@ -6,14 +6,17 @@ import {
   AdminChallenge,
   AdminUser,
   Category,
+  CreateChallengeRequest,
   Indicadores,
   Page,
+  ProgramChallenge,
   RiskLevel,
 } from '../models';
 
 export interface DesafioFiltro {
   category?: Category | '';
   riskLevel?: RiskLevel | '';
+  busca?: string;
   page?: number;
   size?: number;
 }
@@ -42,6 +45,9 @@ export class AdminService {
     if (filtro.riskLevel) {
       params = params.set('riskLevel', filtro.riskLevel);
     }
+    if (filtro.busca?.trim()) {
+      params = params.set('busca', filtro.busca.trim());
+    }
     return this.http.get<Page<AdminChallenge>>(`${this.base}/admin/desafios`, {
       params,
     });
@@ -54,5 +60,23 @@ export class AdminService {
     return this.http.get<Page<AdminUser>>(`${this.base}/admin/usuarios`, {
       params,
     });
+  }
+
+  // ---- C3 · desafios do programa ----
+
+  getPrograma(): Observable<ProgramChallenge[]> {
+    return this.http.get<ProgramChallenge[]>(`${this.base}/admin/programa`);
+  }
+
+  criarPrograma(payload: CreateChallengeRequest): Observable<ProgramChallenge> {
+    return this.http.post<ProgramChallenge>(`${this.base}/admin/programa`, payload);
+  }
+
+  alternarPrograma(id: string, active: boolean): Observable<ProgramChallenge> {
+    return this.http.patch<ProgramChallenge>(`${this.base}/admin/programa/${id}`, { active });
+  }
+
+  removerPrograma(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/admin/programa/${id}`);
   }
 }

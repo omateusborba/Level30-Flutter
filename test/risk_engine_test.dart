@@ -48,8 +48,8 @@ void main() {
         currentDay: 7,
         lastActivityAt: DateTime.now(),
       );
-      expect(engine.assess(c).suggestedAction,
-          SuggestedAction.celebrateMilestone);
+      expect(
+          engine.assess(c).suggestedAction, SuggestedAction.celebrateMilestone);
     });
 
     test('dia 14 deve retornar celebração de marco', () {
@@ -63,8 +63,8 @@ void main() {
         currentDay: 14,
         lastActivityAt: DateTime.now(),
       );
-      expect(engine.assess(c).suggestedAction,
-          SuggestedAction.celebrateMilestone);
+      expect(
+          engine.assess(c).suggestedAction, SuggestedAction.celebrateMilestone);
     });
 
     test('score deve estar entre 0 e 1', () {
@@ -107,8 +107,7 @@ void main() {
         xpReward: 200,
         streak: 0,
         currentDay: 1,
-        lastActivityAt:
-            DateTime.now().subtract(const Duration(days: 10)),
+        lastActivityAt: DateTime.now().subtract(const Duration(days: 10)),
       );
       expect(engine.assess(c).riskScore, greaterThan(0.5));
     });
@@ -116,7 +115,8 @@ void main() {
 
   // Fronteiras exatas entre níveis: <0.25 low · <0.50 medium · <0.75 high · resto critical.
   group('RiskEngine — fronteiras de score', () {
-    test('score na fronteira 0.25 cai em medium (limite inclusivo por baixo)', () {
+    test('score na fronteira 0.25 cai em medium (limite inclusivo por baixo)',
+        () {
       // f_inatividade 0.0 (ativo hoje) + f_progresso 0.25 (dia 5/30) + f_streak 0.0 (streak 10)
       final c = Challenge(
         id: 'b25',

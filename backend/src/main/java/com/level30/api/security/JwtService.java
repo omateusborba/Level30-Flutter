@@ -46,25 +46,53 @@ public class JwtService {
         this.refreshTtlSeconds = refreshTtlSeconds;
     }
 
+    public long getRefreshTtlSeconds() {
+        return refreshTtlSeconds;
+    }
+
     public String generateAccessToken(User user) {
-        return build(user, TYPE_ACCESS, accessTtlSeconds);
-    }
-
-    public String generateRefreshToken(User user) {
-        return build(user, TYPE_REFRESH, refreshTtlSeconds);
-    }
-
-    private String build(User user, String type, long ttlSeconds) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
-                .claim("type", type)
+                .claim("type", TYPE_ACCESS)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plusSeconds(ttlSeconds)))
+                .expiration(Date.from(now.plusSeconds(accessTtlSeconds)))
                 .signWith(key, ALG)
                 .compact();
+    }
+
+    /** A2 — refresh token carrega um {@code jti} rastreado na tabela refresh_tokens. */
+    public String generateRefreshToken(User user, UUID jti) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .id(jti.toString())
+                .subject(user.getId().toString())
+                .claim("email", user.getEmail())
+                .claim("role", user.getRole().name())
+                .claim("type", TYPE_REFRESH)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusSeconds(refreshTtlSeconds)))
+                .signWith(key, ALG)
+                .compact();
+    }
+
+    /** @return o {@code jti} do refresh token, ou {@code null} se invalido/expirado/tipo errado. */
+    public UUID refreshJti(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            if (!TYPE_REFRESH.equals(claims.get("type", String.class)) || claims.getId() == null) {
+                return null;
+            }
+            return UUID.fromString(claims.getId());
+        } catch (JwtException | IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     /** @return o principal, ou {@code null} se o token for inválido, expirado ou do tipo errado. */

@@ -45,6 +45,14 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** A1 — tentativas de login falhas consecutivas. Zera no login bem-sucedido. */
+    @Column(name = "failed_attempts", nullable = false)
+    private int failedAttempts;
+
+    /** A1 — conta bloqueada ate este instante (lockout progressivo). */
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
     public static User create(String email, String passwordHash, String name, Role role) {
         User u = new User();
         u.id = UUID.randomUUID();

@@ -42,20 +42,20 @@ class RiskEngine {
   }
 
   RiskLevel _scoreToLevel(double s) => switch (s) {
-    < 0.25 => RiskLevel.low,
-    < 0.50 => RiskLevel.medium,
-    < 0.75 => RiskLevel.high,
-    _      => RiskLevel.critical,
-  };
+        < 0.25 => RiskLevel.low,
+        < 0.50 => RiskLevel.medium,
+        < 0.75 => RiskLevel.high,
+        _ => RiskLevel.critical,
+      };
 
   SuggestedAction _determineAction(Challenge c, RiskLevel level) {
     if (const [7, 14, 21, 30].contains(c.currentDay)) {
       return SuggestedAction.celebrateMilestone;
     }
     return switch (level) {
-      RiskLevel.low      => SuggestedAction.none,
-      RiskLevel.medium   => SuggestedAction.sendReminder,
-      RiskLevel.high     => SuggestedAction.sendMotivation,
+      RiskLevel.low => SuggestedAction.none,
+      RiskLevel.medium => SuggestedAction.sendReminder,
+      RiskLevel.high => SuggestedAction.sendMotivation,
       RiskLevel.critical => SuggestedAction.suggestReplan,
     };
   }

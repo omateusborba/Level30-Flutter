@@ -15,7 +15,8 @@ class QuoteService {
   ];
 
   Future<String> getMotivationalQuote() async {
-    final index = DateTime.now().difference(DateTime(2026)).inDays % _quotes.length;
+    final index =
+        DateTime.now().difference(DateTime(2026)).inDays % _quotes.length;
     return _quotes[index];
   }
 }

@@ -42,15 +42,14 @@ class ActivityHeatmap extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w600)),
             const Text('12 semanas',
-                style: TextStyle(
-                    color: AppColors.textSecond, fontSize: 11)),
+                style: TextStyle(color: AppColors.textSecond, fontSize: 11)),
           ],
         ),
         const SizedBox(height: 10),
         LayoutBuilder(builder: (context, box) {
           const gap = 3.0;
-          final size = ((box.maxWidth - gap * (_weeks - 1)) / _weeks)
-              .clamp(8.0, 18.0);
+          final size =
+              ((box.maxWidth - gap * (_weeks - 1)) / _weeks).clamp(8.0, 18.0);
           return Row(
             children: List.generate(_weeks, (w) {
               return Padding(
@@ -59,16 +58,15 @@ class ActivityHeatmap extends StatelessWidget {
                   children: List.generate(7, (d) {
                     final date = gridStart.add(Duration(days: w * 7 + d));
                     final future = date.isAfter(today);
-                    final count = byDay[DateTime(date.year, date.month, date.day)] ?? 0;
+                    final count =
+                        byDay[DateTime(date.year, date.month, date.day)] ?? 0;
                     return Padding(
                       padding: EdgeInsets.only(bottom: d == 6 ? 0 : gap),
                       child: Container(
                         width: size,
                         height: size,
                         decoration: BoxDecoration(
-                          color: future
-                              ? Colors.transparent
-                              : _cell(count),
+                          color: future ? Colors.transparent : _cell(count),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),

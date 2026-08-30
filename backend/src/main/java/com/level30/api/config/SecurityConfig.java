@@ -1,5 +1,9 @@
 package com.level30.api.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.level30.api.security.AuthRateLimitFilter;
+import com.level30.api.security.AuthRateLimiter;
+import com.level30.api.security.ClientIpResolver;
 import com.level30.api.security.JwtAuthFilter;
 import com.level30.api.security.RestAuthErrorHandlers;
 import java.util.Arrays;
@@ -38,10 +42,37 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http,
                                     JwtAuthFilter jwtAuthFilter,
                                     RestAuthErrorHandlers errorHandlers,
-                                    CorsConfigurationSource corsConfigurationSource) throws Exception {
+                                    CorsConfigurationSource corsConfigurationSource,
+                                    AuthRateLimiter authRateLimiter,
+                                    ClientIpResolver clientIpResolver,
+                                    ObjectMapper objectMapper) throws Exception {
+        AuthRateLimitFilter authRateLimitFilter =
+                new AuthRateLimitFilter(authRateLimiter, clientIpResolver, objectMapper);
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .headers(h -> h
+                        .frameOptions(fo -> fo.deny())
+                        .contentTypeOptions(c -> {})
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31_536_000))
+                        .referrerPolicy(rp -> rp.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter
+                                        .ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .addHeaderWriter((request, response) -> {
+                            response.setHeader("Permissions-Policy",
+                                    "geolocation=(), microphone=(), camera=()");
+                            // CSP severa para a API JSON; o Swagger UI (mesma origem) precisa afrouxar.
+                            String path = request.getRequestURI();
+                            boolean swagger = path.startsWith("/swagger-ui")
+                                    || path.startsWith("/v3/api-docs");
+                            response.setHeader("Content-Security-Policy", swagger
+                                    ? "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+                                      + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+                                      + "frame-ancestors 'none'"
+                                    : "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+                        }))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
@@ -50,7 +81,8 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(errorHandlers.entryPoint())
                         .accessDeniedHandler(errorHandlers.accessDeniedHandler()))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authRateLimitFilter, JwtAuthFilter.class);
 
         return http.build();
     }

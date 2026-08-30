@@ -28,6 +28,9 @@ class UserProvider extends ChangeNotifier {
     // fornecemos como ler o refresh token e onde guardar o novo access token.
     api.readRefreshToken = () => _storage.read(key: _keyRefreshToken);
     api.onAccessTokenRefreshed = _persistRefreshedToken;
+    // A2: o refresh token é rotacionado a cada uso — persistir o novo é obrigatório.
+    api.onRefreshTokenRotated =
+        (rt) => _storage.write(key: _keyRefreshToken, value: rt);
   }
 
   /// Tenta restaurar uma sessão salva (chamado no boot do app, na Splash).
@@ -70,6 +73,15 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> logOut() async {
+    // A2: revoga a família no servidor (best-effort — não bloqueia o logout local).
+    final rt = await _storage.read(key: _keyRefreshToken);
+    if (rt != null && rt.isNotEmpty) {
+      try {
+        await _repository.logout(rt);
+      } catch (_) {
+        // ignora — a sessão local é limpa de qualquer forma
+      }
+    }
     await _clearSession();
     notifyListeners();
   }
