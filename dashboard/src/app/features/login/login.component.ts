@@ -10,13 +10,11 @@ import { apiErrorMessage } from '../../core/http-error.util';
   standalone: true,
   imports: [FormsModule, NgIf],
   template: `
-    <div class="card" style="width: 360px; max-width: 92vw;">
-      <div class="brand" style="margin-bottom: 6px;">
-        <span class="logo">L30</span><span>Level30</span>
-      </div>
-      <h1>Painel do Coordenador</h1>
-      <p style="color: var(--text-dim); margin-top: -4px;">
-        Entre com uma conta de administrador.
+    <div class="card login-card">
+      <div class="login-ring">30</div>
+      <h1 style="text-align: center; margin-bottom: 2px;">Level30</h1>
+      <p style="color: var(--text-dim); text-align: center; margin-top: 0;">
+        Painel do Coordenador
       </p>
 
       <!-- (ngSubmit) = event binding no form / two-way binding nos campos -->

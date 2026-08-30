@@ -1,9 +1,9 @@
 # Rastreabilidade — Checklist de avaliação Angular (backlog seção 3.3)
 
-Mapa de cada recurso exigido para arquivo:linha onde ele aparece. Referências
-conferidas contra o código deste diretório (Angular 18 standalone).
+Mapa de cada recurso exigido para arquivo:linha. Conferido contra o código deste
+diretório (Angular 18 standalone) após o polimento de design da Fase 5.
 
-Base URL da API e credenciais de seed: ver `README.md`.
+Base URL da API e credenciais: ver `../VISAO-GERAL.md`.
 
 ---
 
@@ -11,108 +11,94 @@ Base URL da API e credenciais de seed: ver `README.md`.
 
 | Onde | Arquivo:linha |
 |---|---|
-| Nome do usuário logado no cabeçalho (`{{ auth.user()?.name }}`) | `src/app/app.component.ts:22` |
-| Mensagem de erro do login | `src/app/features/login/login.component.ts:49` |
-| Valor e rótulo de cada card de KPI | `src/app/features/home/home.component.ts:43-44` |
-| Contagem por categoria / risco | `src/app/features/home/home.component.ts:53,60,69,78` |
-| Título, progresso, streak, risco de cada desafio | `src/app/features/admin/admin.component.ts:156-170` |
-| `riskScore` formatado (`d.riskScore.toFixed(2)`) | `src/app/features/admin/admin.component.ts:170` |
-| Total de elementos / paginação | `src/app/features/admin/admin.component.ts:187-188` |
-| Colunas da tabela de usuários | `src/app/features/admin/admin.component.ts:215-220` |
+| Nome do usuário logado no cabeçalho | `src/app/app.component.ts:22` |
+| Mensagem de erro do login | `src/app/features/login/login.component.ts:47` |
+| Rótulo e valor de cada KPI | `src/app/features/home/home.component.ts:58-59` |
+| Card "precisa de atenção" (título, aluno, categoria, dia, %) | `src/app/features/home/home.component.ts:69-78` |
+| Contagem por categoria / risco (com pipes) | `src/app/features/home/home.component.ts:88,92,101,110` |
+| Título / progresso / streak / risco de cada desafio | `src/app/features/admin/admin.component.ts:167-181` |
+| `riskScore` formatado como `%` | `src/app/features/admin/admin.component.ts:181` |
+| Total de elementos / paginação | `src/app/features/admin/admin.component.ts:197-199` |
+| Colunas da tabela de usuários | `src/app/features/admin/admin.component.ts:229-234` |
 
 ## 2. Property binding `[prop]="expr"`
 
 | Onde | Arquivo:linha |
 |---|---|
-| `[disabled]` no botão Entrar durante loading | `src/app/features/login/login.component.ts:55` |
-| `[disabled]` nos inputs do login | `src/app/features/login/login.component.ts:32,44` |
-| `[style.width.%]` / `[style.background]` nas barras de distribuição | `src/app/features/home/home.component.ts:57,74-75` |
-| `[value]` nas `<option>` dos selects | `src/app/features/admin/admin.component.ts:54,118,126` |
-| `[disabled]` nos botões/inputs enquanto `creating` / `loadingDesafios` | `src/app/features/admin/admin.component.ts:45,77,101,116,130,178` |
-| `[ngClass]` dinâmico no badge de risco (`'risk-' + d.riskLevel`) | `src/app/features/admin/admin.component.ts:167` |
-| `[style.background]` dinâmico no badge de risco | `src/app/features/admin/admin.component.ts:168` |
+| `[disabled]` no botão Entrar / inputs do login | `src/app/features/login/login.component.ts:30,42,53` |
+| `[innerHTML]` do ícone SVG de cada KPI | `src/app/features/home/home.component.ts:56` |
+| `[style.width.%]` / `[style.background]` nas barras de distribuição | `src/app/features/home/home.component.ts:90,101,106-107` |
+| `[routerLink]` no card de atenção | `src/app/features/home/home.component.ts:67` |
+| `[value]` nas `<option>` dos selects | `src/app/features/admin/admin.component.ts:59,123,131` |
+| `[disabled]` nos botões/inputs enquanto `creating`/`loadingDesafios`/`deletingId` | `src/app/features/admin/admin.component.ts:50,58,66,121,129,140,183` |
+| `[ngClass]` dinâmico no badge de risco | `src/app/features/admin/admin.component.ts:172` |
+| `[style.background]` dinâmico no badge de risco | `src/app/features/admin/admin.component.ts:173` |
 | `routerLink` / `routerLinkActive` na navegação | `src/app/app.component.ts:18-19` |
 
 ## 3. Event binding `(evento)="handler()"`
 
 | Onde | Arquivo:linha |
 |---|---|
-| `(ngSubmit)` no formulário de login | `src/app/features/login/login.component.ts:23` |
-| `(click)` no botão "Sair" | `src/app/app.component.ts:23` |
-| `(click)` "Tentar de novo" nos indicadores | `src/app/features/home/home.component.ts:35` |
-| `(ngSubmit)` no formulário de criar desafio | `src/app/features/admin/admin.component.ts:41` |
-| `(ngModelChange)` nos dropdowns de filtro → recarrega a lista | `src/app/features/admin/admin.component.ts:116,124` |
-| `(click)` nos botões "Atualizar" e "Excluir" | `src/app/features/admin/admin.component.ts:130,177` |
+| `(ngSubmit)` no formulário de criar desafio | `src/app/features/admin/admin.component.ts:46` |
+| `(ngSubmit)` no formulário de login | `src/app/features/login/login.component.ts` (form `(ngSubmit)="submit()"`) |
+| `(click)` "Sair" | `src/app/app.component.ts:24` |
+| `(click)` "Tentar de novo" nos indicadores | `src/app/features/home/home.component.ts:36` |
+| `(ngModelChange)` nos dropdowns de filtro → recarrega a lista | `src/app/features/admin/admin.component.ts:121,129` |
+| `(click)` "Atualizar", ordenação de coluna, "Excluir", modal | `src/app/features/admin/admin.component.ts:140,158-163,185,207-208` |
 
 ## 4. Two-way binding `[(ngModel)]`
 
 | Onde | Arquivo:linha |
 |---|---|
-| E-mail e senha no `/login` | `src/app/features/login/login.component.ts:30,42` |
-| Formulário de criar desafio — os 5 campos: título, categoria, descrição, duração, XP | `src/app/features/admin/admin.component.ts:45,53,61,73,89` |
-| Dropdowns de filtro (categoria, nível de risco) em `/admin` | `src/app/features/admin/admin.component.ts:116,124` |
+| E-mail e senha no `/login` | `src/app/features/login/login.component.ts:28,40` |
+| Formulário de criar desafio — os 5 campos | `src/app/features/admin/admin.component.ts:50,58,66,78,94` |
+| Dropdowns de filtro + campo de busca em `/admin` | `src/app/features/admin/admin.component.ts:121,129,137` |
 
 ## 5. `*ngIf`
 
-| Onde | Arquivo:linha |
+| Onde | Contagem |
 |---|---|
-| Shell autenticado vs. tela "bare" de login | `src/app/app.component.ts:11,29` |
-| Erro do login | `src/app/features/login/login.component.ts:49` |
-| Loading / erro / conteúdo dos indicadores | `src/app/features/home/home.component.ts:27,32,39` |
-| Estado vazio das distribuições | `src/app/features/home/home.component.ts:51,66` |
-| Loading / erro / vazio das tabelas de desafios e usuários | `src/app/features/admin/admin.component.ts:136,138,139,142,198,200,201,202` |
-| Mensagens de validação do formulário (`hint`) | `src/app/features/admin/admin.component.ts:46,62,79,95` |
-| Sucesso / erro da criação de desafio | `src/app/features/admin/admin.component.ts:36,39` |
+| `src/app/app.component.ts` (shell autenticado vs. tela bare) | 1 |
+| `src/app/features/login/login.component.ts` (erro, loading) | 4 |
+| `src/app/features/home/home.component.ts` (loading, erro, estado vazio, seções condicionais) | 8 |
+| `src/app/features/admin/admin.component.ts` (hints de validação, loading, erros, estados vazios, modal) | 22 |
 
 ## 6. `*ngFor`
 
 | Onde | Arquivo:linha |
 |---|---|
-| Cards de KPI | `src/app/features/home/home.component.ts:42` |
-| Barras por categoria e por nível de risco | `src/app/features/home/home.component.ts:52,67` |
-| `<option>` de categorias e níveis de risco | `src/app/features/admin/admin.component.ts:54,118,126` |
-| Linhas da tabela de desafios | `src/app/features/admin/admin.component.ts:155` |
-| Linhas da tabela de usuários | `src/app/features/admin/admin.component.ts:214` |
+| KPIs, card de atenção, barras de distribuição | `src/app/features/home/home.component.ts:55,67,87,99` |
+| `<option>` de categoria/risco | `src/app/features/admin/admin.component.ts:59,123,131` |
+| Linhas da tabela de desafios (`desafiosView`) e de usuários | `src/app/features/admin/admin.component.ts:168,229` |
 
-## 7. HttpClient dentro de service injetável (nunca no componente)
+## 7. `HttpClient` em service injetável
 
-| Service | Arquivo | Chamadas |
-|---|---|---|
-| `AuthService` | `src/app/core/services/auth.service.ts:33` | `POST /auth/login` |
-| `AdminService` | `src/app/core/services/admin.service.ts:33,37,55` | `GET /admin/indicadores`, `GET /admin/desafios`, `GET /admin/usuarios` |
-| `ChallengeService` | `src/app/core/services/challenge.service.ts:17,21` | `POST /challenges`, `DELETE /challenges/{id}` |
-| Registro do `HttpClient` + interceptor | `src/app/app.config.ts:11` | `provideHttpClient(withInterceptors([authInterceptor]))` |
-| Interceptor `Authorization: Bearer` + logout em 401 | `src/app/core/interceptors/auth.interceptor.ts:13,19` | — |
-
-Nenhum componente importa `HttpClient`. Os componentes só injetam services e assinam `Observable`s.
-
-## 8. Rotas `/home` e `/admin`
-
-| Item | Arquivo:linha |
+| Service | Arquivo:linha |
 |---|---|
-| Definição das rotas `login`, `home`, `admin` (lazy `loadComponent`) | `src/app/app.routes.ts:5-24` |
-| Guard `adminGuard` protegendo `/home` e `/admin` | `src/app/app.routes.ts:15,21` + `src/app/core/guards/admin.guard.ts:6` |
-| `<router-outlet>` no shell | `src/app/app.component.ts:26,30` |
-| Links de navegação entre as rotas | `src/app/app.component.ts:18-19` |
+| `auth.service.ts` — `http.post` no login | `src/app/core/services/auth.service.ts` |
+| `challenge.service.ts` — `http.post` / `http.delete` | `src/app/core/services/challenge.service.ts:18,22` |
+| `admin.service.ts` — `http.get` indicadores / desafios / usuários | `src/app/core/services/admin.service.ts:32,45,54` |
+| Registro | `src/app/app.config.ts:12` (`provideHttpClient(withInterceptors([authInterceptor]))`) |
 
-## 9. Feedback visual de loading / erro / vazio em todas as telas
+Nenhum componente injeta `HttpClient` — todos assinam os `Observable` dos services.
 
-| Tela | Loading | Erro | Vazio |
-|---|---|---|---|
-| `/login` | spinner no botão `login.component.ts:57-59` | alerta `login.component.ts:49` | botão `[disabled]` com form inválido `login.component.ts:55` |
-| `/home` | `home.component.ts:27` | `home.component.ts:32` (+ retry :35) | "Sem dados." `home.component.ts:51,66` |
-| `/admin` desafios | `admin.component.ts:136` | `admin.component.ts:135` | "Nenhum desafio..." `admin.component.ts:139` |
-| `/admin` usuários | `admin.component.ts:198` | `admin.component.ts:197` | "Nenhum usuário." `admin.component.ts:201` |
-| `/admin` criar desafio | spinner `admin.component.ts:102-104` | `admin.component.ts:39` | sucesso `admin.component.ts:36` |
+## 8. Rotas `/home` e `/admin` com navegação
 
-Estilos dos estados: `.state`, `.spinner`, `.alert-error`, `.alert-success`, `.hint` em `src/styles.css`.
-
----
-
-## Extras de identidade visual (US-027)
-
-| Item | Arquivo |
+| Onde | Arquivo:linha |
 |---|---|
-| Paleta `#080A17` / `#111328` / `#00FF9C` + semáforo de risco | `src/styles.css:3-19` |
-| Fonte Poppins via Google Fonts `<link>` | `src/index.html:11-13` |
-| Semáforo de risco verde/amarelo/laranja/vermelho | `src/styles.css:14-17`, usado em `home.component.ts` e `admin.component.ts` |
+| Definição das rotas (lazy `loadComponent`) + `adminGuard` | `src/app/app.routes.ts:5-24` |
+| Links de navegação | `src/app/app.component.ts:18-19` |
+| `<router-outlet>` | `src/app/app.component.ts` |
+| Interceptor de auth | `src/app/core/interceptors/auth.interceptor.ts:10` |
+| Guard | `src/app/core/guards/admin.guard.ts:6` |
+
+## 9. Estilização e feedback visual (loading / sucesso / erro / vazio)
+
+| Estado | Onde |
+|---|---|
+| Spinner de carregamento | `.spinner` — todas as telas (`*ngIf="loading"`) |
+| Erro | `.alert-error` — login, home, admin |
+| Sucesso | `.alert-success` — admin (desafio criado) |
+| Estado vazio | home (`state-empty` quando não há dados), admin (busca sem resultado, filtros sem resultado, sem usuários) |
+| Modal de confirmação | admin — exclusão de desafio (`.modal-backdrop`) |
+| Design tokens | `src/styles.css:1-16` — mesmos valores de `lib/core/constants/app_colors.dart` |

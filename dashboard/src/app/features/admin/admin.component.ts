@@ -14,6 +14,7 @@ import {
   RISK_LEVELS,
 } from '../../core/models';
 import { apiErrorMessage } from '../../core/http-error.util';
+import { CategoriaLabelPipe, RiscoLabelPipe } from '../../shared/pipes/rotulos.pipe';
 
 const RISK_COLORS: Record<RiskLevel, string> = {
   low: 'var(--risk-low)',
@@ -25,13 +26,17 @@ const RISK_COLORS: Record<RiskLevel, string> = {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [NgIf, NgForOf, NgClass, FormsModule],
+  imports: [NgIf, NgForOf, NgClass, FormsModule, CategoriaLabelPipe, RiscoLabelPipe],
   template: `
     <h1>Administração</h1>
 
     <!-- ================= Criar desafio ================= -->
     <section class="section card">
-      <h2>Criar desafio</h2>
+      <h2>Criar desafio (conta da coordenação)</h2>
+      <p style="color: var(--text-dim); margin-top: -6px;">
+        O desafio é criado na conta de administrador que está logada — serve para
+        testar o fluxo e demonstrar a API. Estudantes criam os próprios desafios pelo app.
+      </p>
 
       <div class="alert alert-success" *ngIf="createSuccess">
         Desafio "{{ createSuccess }}" criado e adicionado ao topo da lista.
@@ -51,7 +56,7 @@ const RISK_COLORS: Record<RiskLevel, string> = {
           <label class="field">
             <span>Categoria</span>
             <select name="category" [(ngModel)]="form.category" required [disabled]="creating">
-              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+              <option *ngFor="let c of categories" [value]="c">{{ c | categoriaLabel }}</option>
             </select>
           </label>
         </div>
@@ -115,7 +120,7 @@ const RISK_COLORS: Record<RiskLevel, string> = {
           <span>Categoria</span>
           <select [(ngModel)]="filtro.category" (ngModelChange)="reloadDesafios()" [disabled]="loadingDesafios">
             <option value="">Todas</option>
-            <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+            <option *ngFor="let c of categories" [value]="c">{{ c | categoriaLabel }}</option>
           </select>
         </label>
 
@@ -123,8 +128,13 @@ const RISK_COLORS: Record<RiskLevel, string> = {
           <span>Nível de risco</span>
           <select [(ngModel)]="filtro.riskLevel" (ngModelChange)="reloadDesafios()" [disabled]="loadingDesafios">
             <option value="">Todos</option>
-            <option *ngFor="let r of riskLevels" [value]="r">{{ r }}</option>
+            <option *ngFor="let r of riskLevels" [value]="r">{{ r | riscoLabel }}</option>
           </select>
+        </label>
+
+        <label class="field">
+          <span>Buscar</span>
+          <input [(ngModel)]="busca" name="busca" placeholder="título ou e-mail" [disabled]="loadingDesafios" />
         </label>
 
         <button type="button" class="btn-ghost" (click)="reloadDesafios()" [disabled]="loadingDesafios">
@@ -139,22 +149,25 @@ const RISK_COLORS: Record<RiskLevel, string> = {
         <div class="state" *ngIf="desafios && desafios.content.length === 0">
           Nenhum desafio para os filtros selecionados.
         </div>
-        <table *ngIf="desafios && desafios.content.length > 0">
+        <div class="state" *ngIf="desafios && desafios.content.length > 0 && desafiosView.length === 0">
+          Nenhum desafio corresponde à busca.
+        </div>
+        <table *ngIf="desafiosView.length > 0">
           <thead>
             <tr>
-              <th>Título</th>
+              <th class="sortable" (click)="ordenarPor('titulo')">Título {{ setaSort('titulo') }}</th>
               <th>Categoria</th>
-              <th>Usuário</th>
-              <th>Progresso</th>
-              <th>Streak</th>
-              <th>Risco</th>
+              <th class="sortable" (click)="ordenarPor('usuarioNome')">Usuário {{ setaSort('usuarioNome') }}</th>
+              <th class="sortable" (click)="ordenarPor('currentDay')">Progresso {{ setaSort('currentDay') }}</th>
+              <th class="sortable" (click)="ordenarPor('streak')">Streak {{ setaSort('streak') }}</th>
+              <th class="sortable" (click)="ordenarPor('riskScore')">Risco {{ setaSort('riskScore') }}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let d of desafios.content">
+            <tr *ngFor="let d of desafiosView">
               <td>{{ d.titulo }}</td>
-              <td>{{ d.categoria }}</td>
+              <td>{{ d.categoria | categoriaLabel }}</td>
               <td>
                 {{ d.usuarioNome }}
                 <div style="color: var(--text-dim); font-size: 12px;">{{ d.usuarioEmail }}</div>
@@ -167,7 +180,7 @@ const RISK_COLORS: Record<RiskLevel, string> = {
                   [ngClass]="'risk-' + d.riskLevel"
                   [style.background]="riskColor(d.riskLevel)"
                 >
-                  {{ d.riskLevel }} · {{ d.riskScore.toFixed(2) }}
+                  {{ d.riskLevel | riscoLabel }} · {{ (d.riskScore * 100).toFixed(0) }}%
                 </span>
               </td>
               <td>
@@ -184,7 +197,7 @@ const RISK_COLORS: Record<RiskLevel, string> = {
           </tbody>
         </table>
         <p style="color: var(--text-dim);" *ngIf="desafios">
-          {{ desafios.totalElements }} desafio(s) · página {{ desafios.number + 1 }} de
+          {{ desafiosView.length }} de {{ desafios.totalElements }} desafio(s) · página {{ desafios.number + 1 }} de
           {{ desafios.totalPages || 1 }}
         </p>
       </div>
@@ -223,6 +236,21 @@ const RISK_COLORS: Record<RiskLevel, string> = {
         </table>
       </div>
     </section>
+
+    <!-- ================= Modal de confirmação ================= -->
+    <div class="modal-backdrop" *ngIf="aExcluir" (click)="aExcluir = null">
+      <div class="modal card" (click)="$event.stopPropagation()">
+        <h2>Excluir desafio</h2>
+        <p>
+          Excluir <strong>"{{ aExcluir.titulo }}"</strong> de {{ aExcluir.usuarioNome }}?
+          Esta ação não pode ser desfeita.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" (click)="aExcluir = null">Cancelar</button>
+          <button type="button" class="btn-danger" (click)="confirmarExclusao()">Excluir</button>
+        </div>
+      </div>
+    </div>
   `,
 })
 export class AdminComponent implements OnInit {
@@ -237,6 +265,10 @@ export class AdminComponent implements OnInit {
 
   // --- desafios table state ---
   filtro: DesafioFiltro = { category: '', riskLevel: '' };
+  busca = '';
+  sortKey: keyof AdminChallenge | '' = '';
+  sortDir: 1 | -1 = 1;
+  aExcluir: AdminChallenge | null = null;
   desafios: Page<AdminChallenge> | null = null;
   loadingDesafios = false;
   desafiosError = '';
@@ -340,12 +372,52 @@ export class AdminComponent implements OnInit {
   }
 
   deleteChallenge(d: AdminChallenge): void {
-    const ok = window.confirm(
-      `Excluir o desafio "${d.titulo}" de ${d.usuarioNome}? Esta ação não pode ser desfeita.`,
-    );
-    if (!ok) {
-      return;
+    this.aExcluir = d;
+  }
+
+  riskColor(level: RiskLevel): string {
+    return RISK_COLORS[level];
+  }
+
+  get desafiosView(): AdminChallenge[] {
+    let rows = this.desafios?.content ?? [];
+    const q = this.busca.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(
+        (d) =>
+          d.titulo.toLowerCase().includes(q) ||
+          d.usuarioEmail.toLowerCase().includes(q) ||
+          d.usuarioNome.toLowerCase().includes(q),
+      );
     }
+    if (this.sortKey) {
+      const k = this.sortKey;
+      rows = [...rows].sort((a, b) => {
+        const va = a[k] as string | number;
+        const vb = b[k] as string | number;
+        return (va < vb ? -1 : va > vb ? 1 : 0) * this.sortDir;
+      });
+    }
+    return rows;
+  }
+
+  ordenarPor(k: keyof AdminChallenge): void {
+    if (this.sortKey === k) {
+      this.sortDir = this.sortDir === 1 ? -1 : 1;
+    } else {
+      this.sortKey = k;
+      this.sortDir = 1;
+    }
+  }
+
+  setaSort(k: keyof AdminChallenge): string {
+    return this.sortKey === k ? (this.sortDir === 1 ? '\u2191' : '\u2193') : '';
+  }
+
+  confirmarExclusao(): void {
+    const d = this.aExcluir;
+    this.aExcluir = null;
+    if (!d) return;
     this.deletingId = d.id;
     this.challenges.remove(d.id).subscribe({
       next: () => {
@@ -357,9 +429,5 @@ export class AdminComponent implements OnInit {
         this.desafiosError = apiErrorMessage(err, 'Nao foi possivel excluir o desafio.');
       },
     });
-  }
-
-  riskColor(level: RiskLevel): string {
-    return RISK_COLORS[level];
   }
 }
