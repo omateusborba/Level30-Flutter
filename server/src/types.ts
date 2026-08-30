@@ -2,6 +2,9 @@ export interface Env {
   DB: D1Database;
   AI: Ai;
   JWT_SECRET: string;
+  // Segredo compartilhado com a API Spring Boot (header X-Service-Token) para as
+  // rotas /internal/*. Opcional: se ausente, /internal/* fica desabilitado.
+  SERVICE_TOKEN?: string;
 }
 
 export type ChallengeCategory =

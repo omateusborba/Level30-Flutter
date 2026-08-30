@@ -1,18 +1,18 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "level30-api",
+  "name": "level30-ai-gateway",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-08",
   "observability": { "enabled": true },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "level30-db",
-      "database_id": "4ba4cfbe-5c09-43c3-93f1-9129e732e372",
-      "migrations_dir": "migrations"
-    }
-  ],
+
+  // Fase 5: o Worker virou SÓ o gateway de IA para a API Spring Boot (`backend/`).
+  // Auth, desafios e XP agora vivem no Postgres do backend Java — nada de D1 aqui.
+  // Secret necessário:  wrangler secret put SERVICE_TOKEN
   "ai": {
     "binding": "AI"
   }
+
+  // Para reativar o backend antigo em D1 (Opção A), reponha:
+  // "d1_databases": [{ "binding": "DB", "database_name": "level30-db",
+  //   "database_id": "<novo id>", "migrations_dir": "migrations" }]
 }
