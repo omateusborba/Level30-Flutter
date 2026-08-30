@@ -13,6 +13,10 @@ public interface ChallengeCompletionRepository
 
     List<ChallengeCompletion> findByChallengeIdOrderByDayNumberAsc(UUID challengeId);
 
+    List<ChallengeCompletion> findByUserId(UUID userId);
+
+    long countByUserId(UUID userId);
+
     List<ChallengeCompletion> findByUserIdAndCompletedOnGreaterThanEqualOrderByCompletedOnAsc(
             UUID userId, LocalDate desde);
 

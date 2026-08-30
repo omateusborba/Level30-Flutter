@@ -35,15 +35,18 @@ public class ChallengeService {
     private final ChallengeCompletionRepository completions;
     private final UserRepository users;
     private final AiGatewayService aiGateway;
+    private final AchievementService achievements;
 
     public ChallengeService(ChallengeRepository challenges,
                             ChallengeCompletionRepository completions,
                             UserRepository users,
-                            AiGatewayService aiGateway) {
+                            AiGatewayService aiGateway,
+                            AchievementService achievements) {
         this.challenges = challenges;
         this.completions = completions;
         this.users = users;
         this.aiGateway = aiGateway;
+        this.achievements = achievements;
     }
 
     @Transactional(readOnly = true)
@@ -99,13 +102,16 @@ public class ChallengeService {
         User user = c.getUser();
         user.setTotalXp(user.getTotalXp() + xpDelta);
 
-        // As três escritas fecham na mesma transação (@Transactional).
+        // Tudo fecha na mesma transação (@Transactional).
         // A UNIQUE (challenge_id, completed_on) é a defesa de banco contra dia duplicado.
         challenges.save(c);
         users.save(user);
         completions.save(ChallengeCompletion.of(c, nextDay, hoje, xpDelta));
 
-        return new CompleteResponse(ChallengeResponse.from(c), xpDelta, user.getTotalXp());
+        var conquistas = achievements.avaliar(user);
+
+        return new CompleteResponse(
+                ChallengeResponse.from(c), xpDelta, user.getTotalXp(), conquistas);
     }
 
     @Transactional(readOnly = true)

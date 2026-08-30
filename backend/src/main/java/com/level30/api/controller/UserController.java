@@ -1,9 +1,11 @@
 package com.level30.api.controller;
 
 import com.level30.api.dto.request.AvatarRequest;
+import com.level30.api.dto.response.AchievementResponse;
 import com.level30.api.dto.response.AtividadeDiaResponse;
 import com.level30.api.dto.response.UserResponse;
 import com.level30.api.security.AuthPrincipal;
+import com.level30.api.service.AchievementService;
 import com.level30.api.service.ChallengeService;
 import com.level30.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,10 +30,13 @@ public class UserController {
 
     private final UserService userService;
     private final ChallengeService challengeService;
+    private final AchievementService achievementService;
 
-    public UserController(UserService userService, ChallengeService challengeService) {
+    public UserController(UserService userService, ChallengeService challengeService,
+                          AchievementService achievementService) {
         this.userService = userService;
         this.challengeService = challengeService;
+        this.achievementService = achievementService;
     }
 
     @GetMapping
@@ -54,5 +59,11 @@ public class UserController {
             @RequestParam(name = "desde")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde) {
         return challengeService.atividade(principal.id(), desde);
+    }
+
+    @GetMapping("/conquistas")
+    @Operation(summary = "Catalogo de conquistas com estado de desbloqueio (F4)")
+    public List<AchievementResponse> conquistas(@AuthenticationPrincipal AuthPrincipal principal) {
+        return achievementService.listar(principal.id());
     }
 }

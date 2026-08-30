@@ -67,6 +67,21 @@ class ChallengeServiceTest {
     }
 
     @Test
+    void completarDia_primeiraConclusao_desbloqueiaPrimeiroPasso() {
+        User user = newUser();
+        Challenge c = newChallenge(user, 0, 0, null);
+
+        var res = challengeService.completeDay(user.getId(), c.getId());
+
+        assertThat(res.conquistas()).extracting("id").contains("primeiro_passo");
+
+        // não concede de novo no dia seguinte
+        Challenge c2 = newChallenge(user, 3, 3, Instant.now().minus(1, ChronoUnit.DAYS));
+        var res2 = challengeService.completeDay(user.getId(), c2.getId());
+        assertThat(res2.conquistas()).extracting("id").doesNotContain("primeiro_passo");
+    }
+
+    @Test
     void completarDia_gravaEventoNoHistorico() {
         User user = newUser();
         Challenge c = newChallenge(user, 4, 2, Instant.now().minus(1, ChronoUnit.DAYS));
