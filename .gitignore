@@ -79,3 +79,7 @@ secrets.*
 # Material de apoio (repositório git separado, fora do build)
 /agents/
 
+# Documentação interna — não versionada (conteúdo migrado/consolidado à parte)
+/VISAO-GERAL.md
+/PROJECT.md
+
