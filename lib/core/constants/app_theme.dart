@@ -79,7 +79,7 @@ class AppTheme {
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: AppColors.accent,
-      linearTrackColor: AppColors.primary,
+      linearTrackColor: AppColors.surface2,
     ),
     useMaterial3: true,
   );

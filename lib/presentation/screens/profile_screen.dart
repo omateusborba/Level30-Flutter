@@ -13,6 +13,7 @@ import '../../data/service/onboarding_service.dart';
 import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/user_provider.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/stat_tile.dart';
 import '../widgets/xp_progress_ring.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -34,44 +35,6 @@ class ProfileScreen extends StatelessWidget {
             icon: const Icon(Icons.notifications_outlined, color: AppColors.accent),
             tooltip: 'Notificações',
             onPressed: () => Navigator.pushNamed(context, '/notifications'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.textSecond),
-            tooltip: 'Sair',
-            onPressed: () async {
-              await context.read<UserProvider>().logOut();
-              if (!context.mounted) return;
-              context.read<ChallengeProvider>().clear();
-              Navigator.pushNamedAndRemoveUntil(
-                  context, '/login', (route) => false);
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: Tooltip(
-                message: 'Level30 é sempre Dark ⚡ — faz parte da identidade!',
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.dark_mode, color: AppColors.textSecond, size: 14),
-                      SizedBox(width: 4),
-                      Text('Dark',
-                          style: TextStyle(
-                              color: AppColors.textSecond, fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -118,7 +81,7 @@ class ProfileScreen extends StatelessWidget {
                     const SnackBar(
                       content: Text(
                           'Tour resetado! Volte para a Home para ver o guia.'),
-                      backgroundColor: Color(0xFF1A3A5C),
+                      backgroundColor: AppColors.surface2,
                     ),
                   );
                 }
@@ -130,7 +93,11 @@ class ProfileScreen extends StatelessWidget {
                 style: TextStyle(color: AppColors.textSecond, fontSize: 13),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 12),
+            const Divider(color: AppColors.border),
+            const SizedBox(height: 4),
+            const _LogoutTile(),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -237,7 +204,7 @@ class _AvatarSectionState extends State<_AvatarSection> {
                 height: 90,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary,
+                  color: AppColors.surface2,
                   border: Border.all(color: AppColors.accent, width: 2),
                   image: avatarBytes != null
                       ? DecorationImage(image: MemoryImage(avatarBytes), fit: BoxFit.cover)
@@ -323,11 +290,11 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stats = [
-      ('🎯', 'Ativos', '${cp.activeCount}'),
-      ('✅', 'Concluídos', '${cp.completedCount}'),
-      ('⚡', 'XP Total', '${profile.totalXp}'),
-      ('🔥', 'Melhor streak', '${cp.bestStreak} dias'),
+    final stats = <(IconData, String, String)>[
+      (Icons.track_changes_outlined, 'Ativos', '${cp.activeCount}'),
+      (Icons.check_circle_outline, 'Concluídos', '${cp.completedCount}'),
+      (Icons.bolt_outlined, 'XP Total', '${profile.totalXp}'),
+      (Icons.local_fire_department_outlined, 'Melhor streak', '${cp.bestStreak} dias'),
     ];
 
     return GridView.count(
@@ -336,43 +303,56 @@ class _StatsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.8,
+      childAspectRatio: 2.4,
       children: stats
-          .map((s) => Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(s.$1,
-                            style: const TextStyle(fontSize: 20)),
-                        const SizedBox(width: 8),
-                        Text(
-                          s.$3,
-                          style: GoogleFonts.poppins(
-                            color: AppColors.textPrimary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      s.$2,
-                      style: GoogleFonts.poppins(
-                          color: AppColors.textSecond, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ))
+          .map((s) =>
+              StatTile(icon: s.$1, value: s.$3, label: s.$2, horizontal: true))
           .toList(),
+    );
+  }
+}
+
+class _LogoutTile extends StatelessWidget {
+  const _LogoutTile();
+
+  Future<void> _confirm(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Sair da conta',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text('Você vai precisar entrar de novo.',
+            style: TextStyle(color: AppColors.textSecond)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar',
+                style: TextStyle(color: AppColors.textSecond)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sair',
+                style: TextStyle(color: AppColors.riskCritical)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await context.read<UserProvider>().logOut();
+    if (!context.mounted) return;
+    context.read<ChallengeProvider>().clear();
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.logout, color: AppColors.riskCritical),
+      title: const Text('Sair da conta',
+          style: TextStyle(color: AppColors.riskCritical)),
+      onTap: () => _confirm(context),
     );
   }
 }

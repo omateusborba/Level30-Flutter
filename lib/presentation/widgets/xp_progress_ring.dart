@@ -114,7 +114,7 @@ class _RingPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth
-          ..color = AppColors.primary);
+          ..color = AppColors.border);
 
     // Progress arc with gradient
     final rect = Rect.fromCircle(center: center, radius: radius);

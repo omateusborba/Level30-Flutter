@@ -79,19 +79,6 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
           icon: const Icon(Icons.close, color: AppColors.textSecond),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          TextButton(
-            onPressed: _submitting ? null : _submit,
-            child: Text(
-              'Criar',
-              style: GoogleFonts.poppins(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
-            ),
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,
@@ -257,24 +244,28 @@ class _CategorySelector extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? cat.color.withAlpha(51) : AppColors.surface,
+              color: isSelected ? AppColors.accent : AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? cat.color : AppColors.border,
-                width: isSelected ? 2 : 1,
+                color: isSelected ? AppColors.accent : AppColors.border,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(cat.emoji, style: const TextStyle(fontSize: 16)),
+                Icon(cat.icon,
+                    size: 15,
+                    color: isSelected ? AppColors.accentInk : cat.color),
                 const SizedBox(width: 6),
                 Text(
                   cat.displayName,
                   style: GoogleFonts.poppins(
-                    color: isSelected ? cat.color : AppColors.textSecond,
+                    color: isSelected
+                        ? AppColors.accentInk
+                        : AppColors.textSecond,
                     fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ],
