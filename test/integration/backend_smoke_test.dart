@@ -26,9 +26,8 @@ void main() {
   final challengeRepo = ChallengeRepositoryImpl();
 
   setUpAll(() {
-    // sanidade: garante que aponta para o backend local
-    expect(AppConfig.apiBaseUrl, contains('localhost'),
-        reason: 'rode com --dart-define=API_BASE_URL=http://localhost:8080');
+    expect(AppConfig.apiBaseUrl, startsWith('http'),
+        reason: 'defina --dart-define=API_BASE_URL=<url do backend>');
   });
 
   test('signup -> me -> repositório de usuário', () async {
