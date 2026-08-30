@@ -1,14 +1,26 @@
 import 'package:flutter/foundation.dart';
 import '../../data/model/challenge.dart';
 import '../../data/model/risk_assessment.dart';
-import '../../data/service/api_client.dart';
+import '../../data/repository/challenge_repository.dart';
+import '../../data/repository/challenge_repository_impl.dart';
+import '../../data/service/challenge_cache.dart';
 import '../engine/risk_engine.dart';
 
 class ChallengeProvider extends ChangeNotifier {
   final RiskEngine _riskEngine = RiskEngine();
+  final ChallengeRepository _repository;
+  final ChallengeCache _cache;
+
+  ChallengeProvider({
+    ChallengeRepository? repository,
+    ChallengeCache? cache,
+  })  : _repository = repository ?? ChallengeRepositoryImpl(),
+        _cache = cache ?? SharedPrefsChallengeCache();
+
   List<Challenge> _challenges = [];
   ChallengeCategory? _selectedCategory;
   bool _isLoading = false;
+  bool _isStale = false;
 
   List<Challenge> get challenges => _selectedCategory == null
       ? List.unmodifiable(_challenges)
@@ -20,23 +32,36 @@ class ChallengeProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasAnyChallenge => _challenges.isNotEmpty;
 
+  /// `true` quando a lista exibida veio do cache local por falha de rede
+  /// (US-032). A Home mostra um banner discreto enquanto isso for verdade.
+  bool get isStale => _isStale;
+
   int get completedCount => _challenges.where((c) => c.isCompleted).length;
   int get activeCount => _challenges.where((c) => !c.isCompleted).length;
   int get bestStreak =>
       _challenges.fold(0, (max, c) => c.streak > max ? c.streak : max);
 
-  /// Busca os desafios do usuário autenticado. Conta nova = lista vazia
-  /// (sem seed padrão) — o vazio é reforçado pelo próprio backend.
+  /// Busca os desafios do usuário autenticado.
+  ///
+  /// - Sucesso: grava o cache e limpa [isStale].
+  /// - Falha de rede COM cache: carrega do cache e marca [isStale].
+  /// - Falha SEM cache: mantém o comportamento antigo (lista vazia).
   Future<void> refresh() async {
     _isLoading = true;
     notifyListeners();
     try {
-      final res = await ApiClient.instance.get('/challenges') as List;
-      _challenges = res
-          .map((j) => Challenge.fromJson(j as Map<String, dynamic>))
-          .toList();
+      _challenges = await _repository.list();
+      _isStale = false;
+      await _cache.save(_challenges);
     } catch (_) {
-      _challenges = [];
+      final cached = await _cache.load();
+      if (cached.isNotEmpty) {
+        _challenges = cached;
+        _isStale = true;
+      } else {
+        _challenges = [];
+        _isStale = false;
+      }
     }
     _isLoading = false;
     notifyListeners();
@@ -45,6 +70,8 @@ class ChallengeProvider extends ChangeNotifier {
   void clear() {
     _challenges = [];
     _selectedCategory = null;
+    _isStale = false;
+    _cache.clear();
     notifyListeners();
   }
 
@@ -55,14 +82,15 @@ class ChallengeProvider extends ChangeNotifier {
     int xpReward = 300,
     int totalDays = 30,
   }) async {
-    final res = await ApiClient.instance.post('/challenges', {
-      'title': title,
-      'category': category.name,
-      'description': description,
-      'xpReward': xpReward,
-      'totalDays': totalDays,
-    });
-    _challenges.insert(0, Challenge.fromJson(res as Map<String, dynamic>));
+    final created = await _repository.create(
+      title: title,
+      category: category,
+      description: description,
+      xpReward: xpReward,
+      totalDays: totalDays,
+    );
+    _challenges.insert(0, created);
+    await _cache.save(_challenges);
     notifyListeners();
   }
 
@@ -72,22 +100,28 @@ class ChallengeProvider extends ChangeNotifier {
   }
 
   /// Completa o dia de hoje via API; retorna o delta de XP e o total
-  /// confirmado pelo servidor (mesma fórmula do `Challenge.earnedXp`).
+  /// confirmado pelo servidor. Propaga ApiException (ex.: 409 quando o
+  /// dia já foi concluído hoje) para a UI tratar.
   Future<({int xpDelta, int totalXp})> completeDay(String id) async {
-    final res =
-        await ApiClient.instance.post('/challenges/$id/complete') as Map<String, dynamic>;
-    final updated = Challenge.fromJson(res['challenge'] as Map<String, dynamic>);
+    final res = await _repository.completeDay(id);
     final idx = _challenges.indexWhere((c) => c.id == id);
-    if (idx != -1) _challenges[idx] = updated;
+    if (idx != -1) _challenges[idx] = res.challenge;
+    await _cache.save(_challenges);
     notifyListeners();
-    return (xpDelta: res['xpDelta'] as int, totalXp: res['totalXp'] as int);
+    return (xpDelta: res.xpDelta, totalXp: res.totalXp);
   }
 
   Future<void> deleteChallenge(String id) async {
-    await ApiClient.instance.delete('/challenges/$id');
+    await _repository.delete(id);
     _challenges.removeWhere((c) => c.id == id);
+    await _cache.save(_challenges);
     notifyListeners();
   }
+
+  /// Recomendação (IA com fallback) para um desafio — via repositório,
+  /// para que nenhuma tela precise falar com o ApiClient direto (US-031).
+  Future<({String message, bool aiGenerated})> getRecommendation(String id) =>
+      _repository.recommendation(id);
 
   Challenge? getById(String id) {
     try {

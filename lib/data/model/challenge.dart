@@ -70,4 +70,19 @@ class Challenge {
         ? DateTime.parse(json['lastActivityAt'] as String)
         : null,
   );
+
+  /// Serialização espelhada de [Challenge.fromJson] — mesmas chaves e tipos.
+  /// Usada para o cache local (US-032) e para montar o corpo de criação
+  /// (US-035), evitando mapas construídos à mão espalhados pelo código.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'category': category.name,
+    'description': description,
+    'totalDays': totalDays,
+    'currentDay': currentDay,
+    'xpReward': xpReward,
+    'streak': streak,
+    'lastActivityAt': lastActivityAt?.toIso8601String(),
+  };
 }

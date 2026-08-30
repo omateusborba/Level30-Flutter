@@ -9,6 +9,7 @@ import '../../data/service/quote_service.dart';
 import '../../data/service/weather_service.dart';
 import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/user_provider.dart';
+import '../widgets/app_bottom_nav.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/challenge_card.dart';
 import '../widgets/delete_confirm_dialog.dart';
@@ -232,6 +233,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
+            // Banner discreto de dados offline (US-032)
+            if (cp.isStale)
+              const SliverToBoxAdapter(child: _StaleBanner()),
+
             // Lista de desafios
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -349,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
         globalKey: OnboardingTourKeys.bottomNav,
         title: 'Navegação Principal',
         description: 'Use a barra inferior para navegar entre Home, Mapa e Perfil.\nO mapa organiza seus desafios ao redor da sua localização atual.',
-        child: _BottomNav(currentIndex: 0),
+        child: const AppBottomNav(currentIndex: 0),
       ),
     );
   }
@@ -517,33 +522,32 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  final int currentIndex;
-  const _BottomNav({required this.currentIndex});
+class _StaleBanner extends StatelessWidget {
+  const _StaleBanner();
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (i) {
-        if (i == currentIndex) return;
-        switch (i) {
-          case 0:
-            Navigator.pushReplacementNamed(context, '/home');
-          case 1:
-            Navigator.pushNamed(context, '/map');
-          case 2:
-            Navigator.pushNamed(context, '/profile');
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined), label: 'Início'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined), label: 'Mapa'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline), label: 'Perfil'),
-      ],
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.riskMedium.withAlpha(102)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.cloud_off_outlined,
+              color: AppColors.riskMedium, size: 16),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Exibindo dados salvos localmente',
+              style: TextStyle(color: AppColors.textSecond, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

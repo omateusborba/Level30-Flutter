@@ -12,6 +12,7 @@ import '../../data/service/api_client.dart';
 import '../../data/service/onboarding_service.dart';
 import '../../domain/provider/challenge_provider.dart';
 import '../../domain/provider/user_provider.dart';
+import '../widgets/app_bottom_nav.dart';
 import '../widgets/xp_progress_ring.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -133,7 +134,7 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _BottomNav(currentIndex: 2),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 2),
     );
   }
 }
@@ -440,33 +441,3 @@ class _MilestonesSection extends StatelessWidget {
   }
 }
 
-class _BottomNav extends StatelessWidget {
-  final int currentIndex;
-  const _BottomNav({required this.currentIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (i) {
-        if (i == currentIndex) return;
-        switch (i) {
-          case 0:
-            Navigator.pushReplacementNamed(context, '/home');
-          case 1:
-            Navigator.pushNamed(context, '/map');
-          case 2:
-            break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined), label: 'Início'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined), label: 'Mapa'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline), label: 'Perfil'),
-      ],
-    );
-  }
-}

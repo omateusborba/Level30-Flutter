@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import 'core/constants/app_theme.dart';
+import 'data/repository/challenge_repository_impl.dart';
+import 'data/repository/user_repository_impl.dart';
+import 'data/service/challenge_cache.dart';
 import 'data/service/notification_service.dart';
 import 'data/service/onboarding_service.dart';
 import 'domain/provider/challenge_provider.dart';
@@ -30,8 +33,15 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ChallengeProvider()),
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ChallengeProvider(
+            repository: ChallengeRepositoryImpl(),
+            cache: SharedPrefsChallengeCache(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => UserProvider(repository: UserRepositoryImpl()),
+        ),
         ChangeNotifierProvider(create: (_) => NotificationProvider()..init()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
