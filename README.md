@@ -36,7 +36,7 @@ O sistema **Smart HAS** (Smart Habit Acceleration System) combina:
 - **Desafios do programa** — a coordenação publica modelos de desafio no dashboard e o estudante os adota com um toque
 - **Modo offline** — os desafios continuam visíveis sem rede, com aviso de "dados salvos localmente"
 - **Notificações inteligentes** — alertas contextuais agendados por horário e disparados por nível de risco, em Android e iOS
-- **Mapa de desafios** — mapa dark (CartoDB/OpenStreetMap) com os desafios ao redor da localização real do usuário
+- **Mapa de desafios** — mapa dark (OpenStreetMap + filtro de inversão de luminância) com os desafios ao redor da localização real do usuário
 - **Tour de onboarding** — guia interativo de 6 passos para novos usuários
 - **Foto de perfil** — captura por câmera ou galeria, com upload para o backend
 - **Integração com APIs reais** — clima em tempo real (Open-Meteo) e citações motivacionais (ZenQuotes)
@@ -169,7 +169,7 @@ CRITICAL ≥ 0,75  → Sugestão de replanejamento
 - Botão de teste na tela de configurações
 
 ### Mapa
-- Tiles dark CartoDB (sem API key necessária)
+- Tiles padrão OpenStreetMap (sem API key necessária) com filtro de inversão de luminância para look dark
 - Localização em tempo real via GPS
 - Marcadores coloridos por categoria de desafio
 - Bottom sheet ao tocar no marcador
@@ -313,7 +313,7 @@ UI (context.watch) → Provider → Repository → ApiClient / Cache → notifyL
 | Framework | Flutter | 3.x |
 | Linguagem | Dart | ≥ 3.3.0 |
 | State Management | Provider + ChangeNotifier | ^6.1.2 |
-| Mapa | flutter_map + CartoDB OSM | ^7.0.2 |
+| Mapa | flutter_map + OpenStreetMap | ^7.0.2 |
 | Coordenadas | latlong2 | ^0.9.0 |
 | Geolocalização | geolocator | ^13.0.1 |
 | Notificações | flutter_local_notifications | ^18.0.1 |
