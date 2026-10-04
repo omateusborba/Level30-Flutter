@@ -149,6 +149,10 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE(v_user.name || ' concluiu o dia ' || (v_ch.current_day + 1)
                          || ' de "' || v_ch.title || '". Alertas gerados: ' || v_alertas);
     DBMS_OUTPUT.PUT_LINE(fn_resumo_usuario(v_user.id));
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Nenhum desafio ATIVO pendente para hoje. '
+                             || 'Rode 02_carga_simulada.sql ou aguarde o próximo dia.');
 END;
 /
 

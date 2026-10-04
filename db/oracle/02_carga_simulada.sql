@@ -38,6 +38,8 @@ DECLARE
 
     v_user_id       VARCHAR2(36);
     v_challenge_id  VARCHAR2(36);
+    v_nome          VARCHAR2(150);
+    v_titulo        VARCHAR2(150);
     v_qtd_desafios  PLS_INTEGER;
     v_inicio        DATE;
     v_dia           DATE;
@@ -85,9 +87,10 @@ BEGIN
     FOR i IN 1 .. v_nomes.COUNT LOOP
         v_user_id    := novo_uuid;
         v_xp_usuario := 0;
+        v_nome       := v_nomes(i);   -- coleção PL/SQL não pode ser indexada dentro de SQL
 
         INSERT INTO l30_users (id, name, email, role, total_xp)
-        VALUES (v_user_id, v_nomes(i), 'aluno' || LPAD(i, 2, '0') || '@level30.online', 'USER', 0);
+        VALUES (v_user_id, v_nome, 'aluno' || LPAD(i, 2, '0') || '@level30.online', 'USER', 0);
         v_tot_usuarios := v_tot_usuarios + 1;
 
         v_qtd_desafios := TRUNC(DBMS_RANDOM.VALUE(1, 4));   -- 1 a 3
@@ -95,11 +98,10 @@ BEGIN
         FOR j IN 1 .. v_qtd_desafios LOOP
             v_challenge_id := novo_uuid;
             v_inicio       := TRUNC(SYSDATE) - TRUNC(DBMS_RANDOM.VALUE(10, 76));
+            v_titulo       := v_titulos(TRUNC(DBMS_RANDOM.VALUE(1, v_titulos.COUNT + 1)));
 
             INSERT INTO l30_challenges (id, user_id, title, start_date)
-            VALUES (v_challenge_id, v_user_id,
-                    v_titulos(TRUNC(DBMS_RANDOM.VALUE(1, v_titulos.COUNT + 1))),
-                    v_inicio);
+            VALUES (v_challenge_id, v_user_id, v_titulo, v_inicio);
             v_tot_desafios := v_tot_desafios + 1;
 
             -- Simula cada dia do calendário até hoje ou até o dia 30 do desafio
