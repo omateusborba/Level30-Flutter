@@ -89,18 +89,52 @@ Um detalhe que a Fase 2 do plano precisa decidir: a assinatura atual é `complet
 
 ---
 
-## Bloqueio ativo — Fase 1 não pode começar
+## Bloqueio da Fase 0 — resolvido
 
-**`db/oracle/` continua ausente do repositório.** Busquei em todo o projeto
-(`find . -iname "*oracle*"`, `find . -iname "0[0-5]_*"`) e a única ocorrência da string "oracle" é
-`specs/003-fase-5/deploy-oracle.md` (doc de deploy da VM, não os scripts PL/SQL). Não há `git status`
-pendente com esses arquivos nem em outra branch local.
+`db/oracle/` foi adicionado à raiz do projeto em 2026-10-03 (6 scripts + `README.md`). Lidos
+integralmente antes de qualquer código Java: as assinaturas de `pr_registrar_conclusao` (10 IN +
+1 OUT, mesma ordem do plano), `pr_verificar_inatividade` e `pr_gerar_relatorio_engajamento` batem
+exatamente com o que o adapter Java chama; os códigos de erro ficam todos em `-20001`..`-20099`
+(`RAISE_APPLICATION_ERROR`); `pr_registrar_conclusao` é idempotente (`DUP_VAL_ON_INDEX` na
+`UNIQUE (challenge_id, completed_on)` → ignora e retorna, sem lançar erro). Nenhum script foi
+alterado (regra 6).
 
-Pela regra 6 ("PL/SQL é a referência... não vou inventar o DDL/procedures sem a referência"), não dá
-pra seguir para a Fase 1 sem os scripts reais. Preciso que você:
-- cole o conteúdo dos 6 arquivos aqui, **ou**
-- aponte o caminho real (talvez em outra pasta, outro repositório, ou ainda não commitados/enviados), **ou**
-- anexe/envie os arquivos para eu colocar em `db/oracle/`.
+---
 
-Assim que eu tiver os scripts, sigo direto para as Fases 1–5 sem pausas adicionais (só paro se um
-script der erro ao rodar no Oracle local, como combinado).
+## Versão final (Fase 5 — Documentação)
+
+### Melhorias da Parte 1 — valor agregado
+
+| Melhoria | Já existia / Fase 6 | Valor agregado |
+|---|---|---|
+| Histórico de conclusões | Já existia (Fase 5, F1) | Base de dados que a Fase 6 passou a **replicar no Oracle** evento a evento — o histórico que já existia no Postgres ganhou uma segunda leitura (indicadores PL/SQL) sem duplicar lógica de negócio |
+| Rate limit com lockout progressivo | Já existia (Bloco 1 de segurança) | Mantido intocado; mencionado aqui só porque fazia parte do escopo de auditoria pedido |
+| Tokens de design unificados Flutter ↔ Angular | Já existia (Fase 5) | O painel novo (`/dashboards/oracle`) herda os tokens automaticamente — nenhuma cor nova foi inventada, reaproveita `--risk-low/medium/high/critical` e `--text-dim` para as 5 faixas de engajamento |
+| **Refatoração Ports & Adapters** | Nova (Fase 6) | `EngajamentoGateway` isola o domínio do Oracle: trocar o Oracle por outra fonte de indicadores no futuro não toca `ChallengeService` nem o controller |
+| **Eventos de domínio após commit** | Nova (Fase 6) | `DesafioConcluidoEvent` + `@TransactionalEventListener(AFTER_COMMIT)` — a conclusão do dia nunca espera o Oracle, e nunca falha por causa dele |
+| **Painel de engajamento (dashboard)** | Nova (Fase 6) | Primeira tela do admin alimentada por PL/SQL — faixas de engajamento, alertas, verificação de inatividade sob demanda |
+
+### Padrões aplicados
+
+- **Ports & Adapters (Hexagonal):** `com.level30.api.gateway.EngajamentoGateway` é a porta; `OracleEngajamentoGateway` (ativo) e `EngajamentoDesabilitadoGateway` (padrão) são os dois adapters, selecionados por `@ConditionalOnProperty(level30.oracle.enabled)`. `ChallengeService` e `AdminEngajamentoController` dependem só da interface.
+- **Eventos de domínio / outbox simplificado:** `DesafioConcluidoEvent` é publicado dentro da transação do Postgres mas só processado `AFTER_COMMIT` — o Postgres continua sendo a fonte de verdade (regra 4), o Oracle é alimentado depois, de forma assíncrona (`@Async("oracleExecutor")`) e com falha isolada (try/catch que só loga).
+- **Idempotência ponta a ponta:** a `UNIQUE (challenge_id, completed_on)` do Oracle (regra do PL/SQL, não alterada) + o fato de o evento carregar o estado final (não um delta cego) tornam reentrega segura — reenviar a mesma conclusão não duplica nem corrompe o replay.
+- **Tradução de erro por camada:** exceções técnicas do JDBC/Oracle (`SQLException`) nunca vazam para o controller — o gateway traduz para `RegraNegocioException` (422, erro de negócio do PL/SQL) ou `CamadaOracleIndisponivelException` (503, infraestrutura), ambas no mesmo contrato `ErroResponse` do resto da API.
+- **Feature flag por configuração, não por código morto:** `level30.oracle.enabled` troca o bean inteiro (via Spring Conditional), não um `if` espalhado pelo código de produção.
+
+### Arquivos alterados/criados por fase
+
+| Fase | O quê |
+|---|---|
+| 1 | `db/oracle/*` (scripts, fornecidos pelo usuário) · `docker-compose.oracle.yml` · `backend/.env.example` · `db/oracle/README.md` (seção "Como rodar") |
+| 2 | `backend/pom.xml` (ojdbc11) · `application.yml` (`level30.oracle.*`) · `config/{DataSourceConfig,OracleConfig,AsyncConfig,OracleInatividadeScheduler}.java` · `domain/event/DesafioConcluidoEvent.java` · `domain/engajamento/*.java` · `gateway/*.java` · `controller/AdminEngajamentoController.java` · `dto/{request/RelatorioEngajamentoRequest,response/InatividadeVerificacaoResponse}.java` · `exception/CamadaOracleIndisponivelException.java` (+ handler em `GlobalExceptionHandler`) · `service/{ChallengeService (evento), EngajamentoEventListener}.java` |
+| 3 | `backend/pom.xml` (testcontainers, profile `oracle-it`) · `test/.../gateway/{OracleEngajamentoGatewayTest,EngajamentoGatewayContextTest,OracleEngajamentoGatewayIT}.java` · `test/.../service/EngajamentoEventListenerTest.java` |
+| 4 | `dashboard/src/app/{app.routes.ts,app.component.ts}` · `core/models/engajamento-oracle.model.ts` · `core/services/engajamento-oracle.service.ts` · `features/dashboards/oracle-engajamento.component.ts` · `shared/pipes/rotulos.pipe.ts` (nova pipe) |
+| 5 | este arquivo · `README.md` (seção "Camada Oracle") · `docs/DEMO_FASE6.md` |
+
+### Pendência conhecida
+
+`OracleEngajamentoGatewayIT` (Testcontainers) **não foi executado** nesta sessão — não havia
+Docker disponível no ambiente onde a Fase 6 foi implementada. Rode `mvn verify -Poracle-it`
+localmente (com Docker) antes de confiar nele em CI. Tudo o mais foi executado e verificado:
+`mvn test` 57/57 (backend), `ng build` + `ng test` 22/22 (dashboard).
