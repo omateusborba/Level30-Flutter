@@ -4,3 +4,4 @@ export * from './challenge.model';
 export * from './indicadores.model';
 export * from './metricas.model';
 export * from './page.model';
+export * from './engajamento-oracle.model';

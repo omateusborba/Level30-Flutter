@@ -19,6 +19,7 @@ import { AuthService } from './core/services/auth.service';
           <a routerLink="/dashboards/engajamento" routerLinkActive="active">Engajamento</a>
           <a routerLink="/dashboards/risco" routerLinkActive="active">Risco</a>
           <a routerLink="/dashboards/gamificacao" routerLinkActive="active">Gamificação</a>
+          <a routerLink="/dashboards/oracle" routerLinkActive="active">Oracle</a>
           <a routerLink="/admin" routerLinkActive="active">Administração</a>
         </nav>
         <div class="account">

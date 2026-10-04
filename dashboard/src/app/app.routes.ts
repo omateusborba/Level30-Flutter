@@ -38,6 +38,14 @@ export const routes: Routes = [
       import('./features/dashboards/gamificacao.component').then((m) => m.GamificacaoComponent),
   },
   {
+    path: 'dashboards/oracle',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/dashboards/oracle-engajamento.component').then(
+        (m) => m.OracleEngajamentoComponent,
+      ),
+  },
+  {
     path: 'admin',
     canActivate: [adminGuard],
     loadComponent: () =>
