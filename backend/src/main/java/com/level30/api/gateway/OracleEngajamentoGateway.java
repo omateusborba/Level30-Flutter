@@ -156,11 +156,19 @@ public class OracleEngajamentoGateway implements EngajamentoGateway {
                         "Relatório de engajamento " + execucaoId + " não encontrado.");
             }
 
-            var periodoRow = oracleJdbcTemplate.queryForMap(
+            // período via RowMapper + getObject(..., LocalDate.class): o driver Oracle devolve
+            // colunas DATE como java.sql.Timestamp (tem hora), não java.sql.Date — um cast direto
+            // pra java.sql.Date lança ClassCastException. getObject(_, LocalDate.class) converte
+            // certo não importa qual subtipo de Date o driver escolheu devolver.
+            var periodo = oracleJdbcTemplate.queryForObject(
                     "SELECT period_start, period_end FROM l30_engagement_reports WHERE execution_id = ? FETCH FIRST 1 ROW ONLY",
+                    (rs, rowNum) -> new LocalDate[] {
+                            rs.getObject("period_start", LocalDate.class),
+                            rs.getObject("period_end", LocalDate.class)
+                    },
                     execucaoId);
-            LocalDate periodoInicio = ((java.sql.Date) periodoRow.get("period_start")).toLocalDate();
-            LocalDate periodoFim = ((java.sql.Date) periodoRow.get("period_end")).toLocalDate();
+            LocalDate periodoInicio = periodo[0];
+            LocalDate periodoFim = periodo[1];
 
             Map<String, Long> contagemPorFaixa = new LinkedHashMap<>();
             for (String faixa : List.of("ALTO", "MODERADO", "EM_RISCO", "CRITICO", "SEM_DESAFIO")) {
