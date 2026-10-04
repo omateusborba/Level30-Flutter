@@ -58,6 +58,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, mensagemLegivel(ex), List.of());
     }
 
+    /** Fase 6 — Oracle desligado neste ambiente, ou fora do ar. Não é erro do cliente. */
+    @ExceptionHandler(CamadaOracleIndisponivelException.class)
+    public ResponseEntity<ErroResponse> handleOracleIndisponivel(CamadaOracleIndisponivelException ex) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), List.of());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroResponse> handleUnexpected(Exception ex, HttpServletRequest req) {
         log.error("Erro nao tratado em {} {}", req.getMethod(), req.getRequestURI(), ex);

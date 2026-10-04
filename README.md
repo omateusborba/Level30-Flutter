@@ -36,7 +36,7 @@ O sistema **Smart HAS** (Smart Habit Acceleration System) combina:
 - **Desafios do programa** — a coordenação publica modelos de desafio no dashboard e o estudante os adota com um toque
 - **Modo offline** — os desafios continuam visíveis sem rede, com aviso de "dados salvos localmente"
 - **Notificações inteligentes** — alertas contextuais agendados por horário e disparados por nível de risco, em Android e iOS
-- **Mapa de desafios** — mapa dark (CartoDB/OpenStreetMap) com os desafios ao redor da localização real do usuário
+- **Mapa de desafios** — mapa dark (OpenStreetMap + filtro de inversão de luminância) com os desafios ao redor da localização real do usuário
 - **Tour de onboarding** — guia interativo de 6 passos para novos usuários
 - **Foto de perfil** — captura por câmera ou galeria, com upload para o backend
 - **Integração com APIs reais** — clima em tempo real (Open-Meteo) e citações motivacionais (ZenQuotes)
@@ -97,6 +97,75 @@ cd dashboard && npm install && npm start                                       #
 flutter run --dart-define=API_BASE_URL=http://localhost:8080                    # app apontando pro backend local
 ```
 Seed (local): `admin@level30.app` / `admin1234` (ADMIN) · `ana@level30.app` / `estudante1` (USER).
+
+---
+
+## Camada Oracle (Fase 6)
+
+Uma quarta camada, **opcional**, para indicadores e alertas de engajamento em **PL/SQL puro**.
+O PostgreSQL continua sendo a fonte de verdade do app — o Oracle recebe uma réplica a cada
+conclusão de dia e concentra ali o que é naturalmente um problema de banco: taxa de adesão,
+faixas de engajamento, alertas de inatividade.
+
+```
+App Flutter ──► Spring Boot ──► PostgreSQL        (estado operacional, inalterado)
+Dashboard   ──►     │
+                    └─ evento após commit, assíncrono ──► Oracle PL/SQL (indicadores, alertas)
+```
+
+- **Scripts de referência:** [`db/oracle/`](db/oracle/) — `00_drop.sql` → `05_job_opcional.sql`,
+  mais [`db/oracle/README.md`](db/oracle/README.md) (DER completo, ordem de execução, mapa de requisitos).
+- **Arquitetura (Ports & Adapters):** `EngajamentoGateway` é a porta; `OracleEngajamentoGateway`
+  (ativo) e `EngajamentoDesabilitadoGateway` (padrão) são os adapters — trocados via Spring
+  `@ConditionalOnProperty`, sem `if` espalhado pelo código.
+- **Nunca bloqueia o aluno:** a conclusão do dia publica `DesafioConcluidoEvent` **depois** do
+  commit no Postgres (`@TransactionalEventListener(phase = AFTER_COMMIT)`), processado num
+  executor assíncrono dedicado (`oracleExecutor`). Se o Oracle falhar ou estiver desligado, o
+  aluno nem percebe — só um log de aviso.
+- **Idempotente:** reenviar a mesma conclusão não duplica nada (`UNIQUE (challenge_id,
+  completed_on)` no Oracle).
+
+### Como ativar
+
+Desligada por padrão (`LEVEL30_ORACLE_ENABLED=false`) — é o que roda em produção hoje. Para ligar:
+
+```bash
+# 1. Suba um Oracle local (ver db/oracle/README.md para detalhes e para o Oracle da FIAP)
+ORACLE_SYS_PASSWORD=... ORACLE_USER=level30 ORACLE_PASSWORD=... \
+  docker compose -f docker-compose.oracle.yml up -d
+
+# 2. Rode os scripts na ordem (00 a 05) — ver "Como rodar" em db/oracle/README.md
+
+# 3. Suba o backend com a camada ligada
+cd backend
+LEVEL30_ORACLE_ENABLED=true \
+ORACLE_URL=jdbc:oracle:thin:@//localhost:1521/FREEPDB1 \
+ORACLE_USER=level30 ORACLE_PASSWORD=... \
+  mvn spring-boot:run
+```
+
+Variáveis completas em [`backend/.env.example`](backend/.env.example).
+
+### Endpoints (`/admin/engajamento/**`, só ADMIN)
+
+| Rota | Método | Descrição |
+|---|---|---|
+| `/admin/engajamento/relatorios` | POST | Gera relatório de engajamento no período (`{ inicio, fim }`) |
+| `/admin/engajamento/relatorios/{execucaoId}` | GET | Recupera um relatório já gerado |
+| `/admin/engajamento/alertas` | GET | Lista alertas (`?abertos=true`) |
+| `/admin/engajamento/inatividade/verificar` | POST | Roda a verificação de inatividade agora |
+| `/admin/engajamento/usuarios/{id}/resumo` | GET | Resumo do aluno + adesão de 30 dias (functions Oracle) |
+
+Erros de negócio do PL/SQL (`ORA-20000`..`ORA-20999`) chegam como **422**; Oracle fora do ar ou
+desligado, **503** com `{ "mensagem": "Camada Oracle desabilitada neste ambiente." }` — é esse
+503 que o dashboard mostra como estado vazio em [`/dashboards/oracle`](dashboard/src/app/features/dashboards/oracle-engajamento.component.ts).
+
+### Como testar ponta a ponta
+
+Roteiro completo em [`docs/DEMO_FASE6.md`](docs/DEMO_FASE6.md). Testes automatizados:
+`mvn test` (backend, sem Oracle) e `mvn verify -Poracle-it` (com Docker — sobe um Oracle
+descartável via Testcontainers e roda os scripts de verdade). Detalhes da decisão técnica e o
+que foi/não foi executado em [`docs/MELHORIAS_FASE6.md`](docs/MELHORIAS_FASE6.md).
 
 ---
 
@@ -169,7 +238,7 @@ CRITICAL ≥ 0,75  → Sugestão de replanejamento
 - Botão de teste na tela de configurações
 
 ### Mapa
-- Tiles dark CartoDB (sem API key necessária)
+- Tiles padrão OpenStreetMap (sem API key necessária) com filtro de inversão de luminância para look dark
 - Localização em tempo real via GPS
 - Marcadores coloridos por categoria de desafio
 - Bottom sheet ao tocar no marcador
@@ -313,7 +382,7 @@ UI (context.watch) → Provider → Repository → ApiClient / Cache → notifyL
 | Framework | Flutter | 3.x |
 | Linguagem | Dart | ≥ 3.3.0 |
 | State Management | Provider + ChangeNotifier | ^6.1.2 |
-| Mapa | flutter_map + CartoDB OSM | ^7.0.2 |
+| Mapa | flutter_map + OpenStreetMap | ^7.0.2 |
 | Coordenadas | latlong2 | ^0.9.0 |
 | Geolocalização | geolocator | ^13.0.1 |
 | Notificações | flutter_local_notifications | ^18.0.1 |

@@ -15,6 +15,14 @@ const RISCO: Record<string, string> = {
   critical: 'Crítico',
 };
 
+const FAIXA_ENGAJAMENTO: Record<string, string> = {
+  ALTO: 'Alto',
+  MODERADO: 'Moderado',
+  EM_RISCO: 'Em risco',
+  CRITICO: 'Crítico',
+  SEM_DESAFIO: 'Sem desafio',
+};
+
 /**
  * Traduz o valor cru da API (minúsculas, inglês) para exibição. NÃO altera o
  * contrato — o valor enviado à API continua o original.
@@ -32,5 +40,13 @@ export class RiscoLabelPipe implements PipeTransform {
   transform(value: string | null | undefined): string {
     if (!value) return '—';
     return RISCO[value.toLowerCase()] ?? value;
+  }
+}
+
+@Pipe({ name: 'faixaEngajamentoLabel', standalone: true })
+export class FaixaEngajamentoLabelPipe implements PipeTransform {
+  transform(value: string | null | undefined): string {
+    if (!value) return '—';
+    return FAIXA_ENGAJAMENTO[value.toUpperCase()] ?? value;
   }
 }

@@ -1,0 +1,33 @@
+# Level30 · Smart HAS — Fase 6
+# Oracle local para desenvolvimento/teste da camada PL/SQL (db/oracle/).
+# Não é usado em produção — a VM Oracle Cloud roda Postgres (deploy/docker-compose.yml);
+# este Oracle aqui é só o "Oracle" (banco) rodando local pra validar os scripts.
+#
+# Uso:
+#   ORACLE_PASSWORD=...  ORACLE_USER=level30  ORACLE_PASSWORD_APP=... \
+#     docker compose -f docker-compose.oracle.yml up -d
+#
+# Variáveis via .env (ver backend/.env.example) ou exportadas no shell.
+
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim-faststart
+    container_name: level30-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_SYS_PASSWORD:?defina ORACLE_SYS_PASSWORD no .env}
+      APP_USER: ${ORACLE_USER:-level30}
+      APP_USER_PASSWORD: ${ORACLE_PASSWORD:?defina ORACLE_PASSWORD no .env}
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./db/oracle:/scripts:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+volumes:
+  oracle-data:
