@@ -163,6 +163,38 @@ alterado (regra 6).
 
 `OracleEngajamentoGatewayIT` (Testcontainers) **não foi executado** nesta sessão — não havia
 Docker disponível no ambiente onde a Fase 6 foi implementada. Rode `mvn verify -Poracle-it`
-localmente (com Docker) antes de confiar nele em CI — o parser foi corrigido e revalidado
-estaticamente (ver acima), mas isso não substitui rodar contra um Oracle de verdade. Tudo o mais
-foi executado e verificado: `mvn test` 58/58 (backend), `ng build` + `ng test` 22/22 (dashboard).
+localmente (com Docker) antes de confiar nele em CI. Tudo o mais foi executado e verificado:
+`mvn test` 61/61 (backend), `ng build` + `ng test` 22/22 (dashboard).
+
+### Correção adicional — parser do script extraído e testado de verdade
+
+A revisão anterior (seção acima) descrevia a regra do parser como "tudo antes do último `/` é
+**um** bloco PL/SQL inteiro" — prosa ambígua que o código já não fazia (o loop já executava cada
+bloco separadamente), mas que também nunca tinha sido verificada por um teste que realmente roda.
+Toda a "validação" até aqui era um script Python externo, não um teste no `mvn test`.
+
+Corrigido isso de vez:
+
+- A lógica de divisão saiu do `OracleEngajamentoGatewayIT` para `OracleScriptParser`
+  (`backend/src/test/.../gateway/OracleScriptParser.java`), uma classe só com essa
+  responsabilidade, sem depender de Docker/Oracle para ser exercitada.
+- `OracleScriptParserTest` (novo, **sem** `@Tag("oracle")` — roda no `mvn test` padrão) lê os 3
+  arquivos reais de `db/oracle/` e confirma exatamente o que o enunciado pediu:
+  - `01_ddl.sql` → 27 statements, nenhum PL/SQL (6 `CREATE TABLE`, 1 `CREATE SEQUENCE`)
+  - `02_carga_simulada.sql` → 2 statements (1 bloco `DECLARE`…`END;` + 1 `SELECT`), nenhum
+    começando com `SET` e nenhum com `SERVEROUTPUT` sobrando
+  - `03_plsql.sql` → 7 statements: 6 blocos `CREATE OR REPLACE`, cada um terminando exatamente em
+    `END <nome_da_rotina>;` (`pr_log_execucao`, `fn_taxa_adesao`, `fn_resumo_usuario`,
+    `pr_registrar_conclusao`, `pr_verificar_inatividade`, `pr_gerar_relatorio_engajamento`, nessa
+    ordem) + 1 `SELECT` final
+- Diretivas SQL*Plus descartadas por palavra-chave explícita (`SET SERVEROUTPUT`, `SET ECHO`,
+  `SET FEEDBACK`, ... `SPOOL`, `PROMPT`) — **não** um `^SET\b` genérico, porque os scripts têm
+  `UPDATE ... SET coluna = valor` de verdade (`pr_registrar_conclusao`, linha ~272; a carga
+  simulada, linha ~160) que um regex genérico apagaria.
+- `OracleEngajamentoGatewayIT` agora só chama `OracleScriptParser.dividirEmStatements(...)` e
+  executa o resultado — não tem mais lógica de parsing própria.
+
+`mvn test`: **61/61** (58 anteriores + 3 do `OracleScriptParserTest`), confirmado rodando de
+verdade. O `OracleEngajamentoGatewayIT` continua sem executar nesta sessão (sem Docker), mas
+agora a parte que mais importava validar — o parser — tem cobertura automatizada real, não só
+uma checagem manual externa ao projeto.
