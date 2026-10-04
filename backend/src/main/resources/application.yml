@@ -46,6 +46,26 @@ app:
     admin-email: ${SEED_ADMIN_EMAIL:admin@level30.app}
     admin-password: ${SEED_ADMIN_PASSWORD:admin1234}
 
+# Fase 6 — camada de engajamento Oracle PL/SQL. Desligada por padrão: o app sobe e se
+# comporta exatamente como hoje sem Oracle (ver db/oracle/ e backend/.env.example).
+level30:
+  oracle:
+    enabled: ${LEVEL30_ORACLE_ENABLED:false}
+    inatividade:
+      agendamento-ativo: ${LEVEL30_ORACLE_INATIVIDADE_JOB:false}
+      cron: "0 0 6 * * *"
+      dias-limite: 3
+    datasource:
+      url: ${ORACLE_URL:}
+      username: ${ORACLE_USER:}
+      password: ${ORACLE_PASSWORD:}
+      driver-class-name: oracle.jdbc.OracleDriver
+      hikari:
+        pool-name: oracle-pool
+        maximum-pool-size: 3
+        minimum-idle: 0
+        connection-timeout: 5000
+
 logging:
   level:
     com.level30.api: INFO

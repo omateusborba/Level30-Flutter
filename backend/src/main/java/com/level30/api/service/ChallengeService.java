@@ -1,5 +1,6 @@
 package com.level30.api.service;
 
+import com.level30.api.domain.event.DesafioConcluidoEvent;
 import com.level30.api.domain.model.Challenge;
 import com.level30.api.domain.model.ChallengeCompletion;
 import com.level30.api.domain.model.User;
@@ -21,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,19 +39,22 @@ public class ChallengeService {
     private final AiGatewayService aiGateway;
     private final AchievementService achievements;
     private final RiskMaterializationService risk;
+    private final ApplicationEventPublisher events;
 
     public ChallengeService(ChallengeRepository challenges,
                             ChallengeCompletionRepository completions,
                             UserRepository users,
                             AiGatewayService aiGateway,
                             AchievementService achievements,
-                            RiskMaterializationService risk) {
+                            RiskMaterializationService risk,
+                            ApplicationEventPublisher events) {
         this.challenges = challenges;
         this.completions = completions;
         this.users = users;
         this.aiGateway = aiGateway;
         this.achievements = achievements;
         this.risk = risk;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -119,6 +124,20 @@ public class ChallengeService {
         completions.save(ChallengeCompletion.of(c, nextDay, hoje, xpDelta, note));
 
         var conquistas = achievements.avaliar(user);
+
+        // Fase 6 — replicação no Oracle acontece fora desta transação (listener AFTER_COMMIT);
+        // nenhum campo abaixo exige consulta extra (ver docs/MELHORIAS_FASE6.md, Parte 2).
+        events.publishEvent(new DesafioConcluidoEvent(
+                user.getId(),
+                user.getName(),
+                user.getTotalXp(),
+                c.getId(),
+                c.getTitle(),
+                LocalDate.ofInstant(c.getCreatedAt(), ZONE),
+                nextDay,
+                c.getStreak(),
+                hoje,
+                xpDelta));
 
         return new CompleteResponse(
                 ChallengeResponse.from(c), xpDelta, user.getTotalXp(), conquistas);
