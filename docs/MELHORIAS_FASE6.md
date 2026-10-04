@@ -132,9 +132,37 @@ alterado (regra 6).
 | 4 | `dashboard/src/app/{app.routes.ts,app.component.ts}` · `core/models/engajamento-oracle.model.ts` · `core/services/engajamento-oracle.service.ts` · `features/dashboards/oracle-engajamento.component.ts` · `shared/pipes/rotulos.pipe.ts` (nova pipe) |
 | 5 | este arquivo · `README.md` (seção "Camada Oracle") · `docs/DEMO_FASE6.md` |
 
+### Correções pós-revisão (antes do push)
+
+1. **Log enganoso com Oracle desligado.** `EngajamentoEventListener` logava "Conclusão replicada
+   no Oracle ... alertas=0" mesmo sem nenhuma replicação real — o `EngajamentoDesabilitadoGateway`
+   é um no-op silencioso, então o `info()` de sucesso não significava sucesso nenhum. Corrigido
+   tornando o listener condicional: `@ConditionalOnProperty(level30.oracle.enabled=true)` — com a
+   camada desligada, o bean **nem existe**, o evento é publicado e não tem ninguém ouvindo, e não
+   há log nenhum. Verificado ao vivo (backend real, H2, Oracle desligado): completei um dia via
+   HTTP e não apareceu nenhuma linha de replicação no log. `EngajamentoGatewayContextTest` ganhou
+   um segundo teste confirmando que `context.getBean(EngajamentoEventListener.class)` lança
+   `NoSuchBeanDefinitionException` nesse cenário.
+2. **`OracleEngajamentoGatewayIT` não rodava `02_carga_simulada.sql`** e seu parser de script
+   tinha um bug real: classificava blocos PL/SQL por palavra-chave (`DECLARE`/`BEGIN`/`CREATE OR
+   REPLACE`), e esse heurístico **errava** justamente no único bloco `DECLARE` dos 3 scripts — o
+   de `02_carga_simulada.sql`, que começa com linhas de comentário e `SET SERVEROUTPUT ON` antes
+   do `DECLARE`. O heurístico não reconhecia o bloco como PL/SQL e tentaria fatiá-lo por `;`,
+   quebrando a carga simulada inteira. Encontrado só agora porque a validação anterior (sem
+   Docker) tinha checado `01_ddl.sql` e `03_plsql.sql`, mas não `02_carga_simulada.sql`. Corrigido
+   com uma lógica posicional, sem inspecionar conteúdo: tudo antes do último delimitador `/` é um
+   bloco PL/SQL inteiro (é exatamente o que esse delimitador significa no SQL*Plus); só o que
+   sobra depois do último `/` é SQL simples, fatiado por `;`. `SET SERVEROUTPUT ON` é removido
+   antes de tudo (diretiva do cliente SQL*Plus, inválida via JDBC). Revalidado (ainda sem Docker,
+   com um script Python equivalente) contra os 3 arquivos: `01_ddl.sql` → 0 blocos PL/SQL + 27
+   statements simples; `02_carga_simulada.sql` → 1 bloco PL/SQL + 1 statement simples;
+   `03_plsql.sql` → 6 blocos PL/SQL + 1 statement simples. O `@BeforeAll` do IT agora roda
+   `01_ddl.sql` → `02_carga_simulada.sql` → `03_plsql.sql`, nessa ordem.
+
 ### Pendência conhecida
 
 `OracleEngajamentoGatewayIT` (Testcontainers) **não foi executado** nesta sessão — não havia
 Docker disponível no ambiente onde a Fase 6 foi implementada. Rode `mvn verify -Poracle-it`
-localmente (com Docker) antes de confiar nele em CI. Tudo o mais foi executado e verificado:
-`mvn test` 57/57 (backend), `ng build` + `ng test` 22/22 (dashboard).
+localmente (com Docker) antes de confiar nele em CI — o parser foi corrigido e revalidado
+estaticamente (ver acima), mas isso não substitui rodar contra um Oracle de verdade. Tudo o mais
+foi executado e verificado: `mvn test` 58/58 (backend), `ng build` + `ng test` 22/22 (dashboard).

@@ -14,9 +14,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Fase 6 — {@link EngajamentoEventListener} isolado (sem Spring context): chama o gateway, e uma
- * falha do gateway nunca deve propagar (regra: Oracle nunca derruba a conclusão do aluno, que já
- * aconteceu antes deste listener rodar).
+ * Fase 6 — {@link EngajamentoEventListener} isolado (sem Spring context, instanciado direto —
+ * o {@code @ConditionalOnProperty} da classe não entra em jogo aqui). Cobre o comportamento do
+ * listener no cenário em que ele de fato existe como bean (Oracle ligado): chama o gateway, e
+ * uma falha do gateway nunca deve propagar (regra: Oracle nunca derruba a conclusão do aluno, que
+ * já aconteceu antes deste listener rodar). O cenário "Oracle desligado" é coberto à parte, em
+ * {@link com.level30.api.gateway.EngajamentoGatewayContextTest} — o listener simplesmente não é
+ * registrado como bean, então não há log de "Conclusão replicada no Oracle" sem replicação real.
  */
 @ExtendWith(MockitoExtension.class)
 class EngajamentoEventListenerTest {
