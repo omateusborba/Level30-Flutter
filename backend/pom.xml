@@ -162,6 +162,12 @@
                         <configuration>
                             <excludedGroups combine.self="override"></excludedGroups>
                             <groups>oracle</groups>
+                            <!-- Surefire só inclui *Test.java/*Tests.java por padrão — esse
+                                 padrão não pega OracleEngajamentoGatewayIT (sufixo IT, convenção
+                                 do Failsafe). Sem isto, "mvn verify -Poracle-it" roda 0 testes. -->
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
                         </configuration>
                     </plugin>
                 </plugins>
