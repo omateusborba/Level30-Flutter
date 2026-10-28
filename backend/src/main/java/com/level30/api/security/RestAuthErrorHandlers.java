@@ -35,7 +35,7 @@ public class RestAuthErrorHandlers {
 
     private void writeUnauthorized(HttpServletRequest req, HttpServletResponse res,
                                    AuthenticationException ex) throws IOException {
-        write(res, HttpServletResponse.SC_UNAUTHORIZED, "Nao autenticado.");
+        write(res, HttpServletResponse.SC_UNAUTHORIZED, "Não autenticado.");
     }
 
     private void writeForbidden(HttpServletRequest req, HttpServletResponse res,

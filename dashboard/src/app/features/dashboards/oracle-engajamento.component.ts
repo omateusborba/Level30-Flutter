@@ -261,22 +261,36 @@ function isoHoje(offsetDias = 0): string {
       <div class="table-wrap" *ngIf="!carregandoAuditoria && auditoria.length > 0">
         <table>
           <thead>
-            <tr><th>Quando</th><th>Operação</th><th>Registro</th><th>Usuário do banco</th><th>Dados</th></tr>
+            <tr><th>Quando</th><th>Operação</th><th>Registro</th><th>Usuário do banco</th><th>Resumo</th></tr>
           </thead>
           <tbody>
-            <tr *ngFor="let a of auditoria">
-              <td>{{ a.criadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
-              <td>{{ rotuloOperacao(a.operacao) }}</td>
-              <td>{{ a.tabela }} #{{ a.registroId }}</td>
-              <td>{{ a.usuarioBanco }}</td>
-              <td><code>{{ a.dadosNovos ?? a.dadosAntigos }}</code></td>
-            </tr>
+            <ng-container *ngFor="let a of auditoria">
+              <tr>
+                <td>{{ a.criadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+                <td>{{ rotuloOperacao(a.operacao) }}</td>
+                <td>{{ a.tabela }} #{{ a.registroId }}</td>
+                <td>{{ a.usuarioBanco }}</td>
+                <td>
+                  {{ resumoAuditoria(a) }}
+                  <button type="button" class="btn-ghost btn-mini" (click)="alternarJson(a.id)"
+                          [attr.aria-expanded]="jsonAberto(a.id)">
+                    {{ jsonAberto(a.id) ? 'ocultar JSON' : 'ver JSON' }}
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="jsonAberto(a.id)" class="json-row">
+                <td colspan="5"><pre>{{ jsonFormatado(a) }}</pre></td>
+              </tr>
+            </ng-container>
           </tbody>
         </table>
       </div>
     </section>
   `,
   styles: [`
+    .btn-mini { padding: 2px 8px; font-size: 12px; margin-left: 8px; }
+    .json-row td { white-space: normal; background: var(--surface-2); }
+    .json-row pre { margin: 0; font-size: 12px; overflow-x: auto; }
     .fila-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   `],
 })
@@ -343,6 +357,48 @@ export class OracleEngajamentoComponent implements OnInit {
       },
       error: (err: unknown) => this.tratarErro(err, () => (this.carregandoAuditoria = false)),
     });
+  }
+
+  private abertos = new Set<number>();
+
+  jsonAberto(id: number): boolean {
+    return this.abertos.has(id);
+  }
+
+  alternarJson(id: number): void {
+    if (!this.abertos.delete(id)) this.abertos.add(id);
+  }
+
+  /** Ex.: "desafio 6c47ef2d · dia 5 · +20 XP" (o JSON inteiro fica atrás do botão). */
+  resumoAuditoria(a: RegistroAuditoriaOracle): string {
+    const novo = this.parseJson(a.dadosNovos);
+    const antigo = this.parseJson(a.dadosAntigos);
+    const base = (novo ?? antigo) as Record<string, unknown> | null;
+    if (!base) return '—';
+    const desafio = String(base['challenge_id'] ?? '').slice(0, 8);
+    let txt = `desafio ${desafio} · dia ${base['day_number']}`;
+    if (a.operacao === 'U' && antigo && novo && antigo['xp_delta'] !== novo['xp_delta']) {
+      txt += ` · XP ${antigo['xp_delta']} → ${novo['xp_delta']}`;
+    } else {
+      txt += ` · ${a.operacao === 'D' ? '−' : '+'}${base['xp_delta']} XP`;
+    }
+    return txt;
+  }
+
+  jsonFormatado(a: RegistroAuditoriaOracle): string {
+    const partes: string[] = [];
+    if (a.dadosAntigos) partes.push('antes: ' + JSON.stringify(this.parseJson(a.dadosAntigos), null, 2));
+    if (a.dadosNovos) partes.push('depois: ' + JSON.stringify(this.parseJson(a.dadosNovos), null, 2));
+    return partes.join('\n');
+  }
+
+  private parseJson(txt: string | null): Record<string, unknown> | null {
+    if (!txt) return null;
+    try {
+      return JSON.parse(txt) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
   }
 
   rotuloOperacao(op: string): string {

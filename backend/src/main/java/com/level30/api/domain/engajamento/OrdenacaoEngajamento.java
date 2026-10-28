@@ -20,6 +20,6 @@ public enum OrdenacaoEngajamento {
                 return o;
             }
         }
-        throw new RegraNegocioException("ordenarPor invalido. Use ADESAO, STREAK, NOME ou NIVEL.", HttpStatus.BAD_REQUEST);
+        throw new RegraNegocioException("ordenarPor inválido. Use ADESAO, STREAK, NOME ou NIVEL.", HttpStatus.BAD_REQUEST);
     }
 }

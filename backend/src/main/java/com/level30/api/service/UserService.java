@@ -63,7 +63,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public User load(UUID userId) {
         return users.findById(userId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado."));
     }
 
     // ---- avatar helpers ----

@@ -111,3 +111,20 @@ Use quando o Oracle da FIAP não aceitar conexão do GitHub (mantenha `ORACLE_DE
 > Atenção (é o que o CD automatiza): `10_consolidacao.sql` apaga `fn_taxa_adesao`, `fn_resumo_usuario`, `pr_registrar_conclusao` e
 > `pr_gerar_relatorio_engajamento` standalone. Faça isso **depois** de a API nova (que chama os packages)
 > estar no ar, ou o Java antigo passa a falhar ao chamar a rotina removida.
+
+## Variáveis de ambiente da API para a IA (sem valores)
+
+A recomendação do detalhe do desafio e o assistente chamam o Worker de IA (Cloudflare) pela API. Variáveis do
+processo da API (na VM: `deploy/.env`; local: ambiente do shell), **nunca** em arquivo versionado:
+
+| Nome | Para quê |
+|---|---|
+| `AI_WORKER_URL` | URL do Worker de IA. Vazia = IA desligada (o log da API avisa na subida e a recomendação cai no texto padrão, "Sugestão padrão") |
+| `AI_SERVICE_TOKEN` | Mesmo valor do `SERVICE_TOKEN` configurado no Worker; sem ele o Worker responde 401 |
+
+Diagnóstico: procure no log da API por `IA ligada`, `IA desligada` ou `Gateway de IA falhou`.
+
+## Seed da demo
+
+`scripts/demo-seed.sh` / `scripts/demo-reset.sh` (ver `02_ROTEIRO_DEMO.md`) populam PostgreSQL/H2 e Oracle com os
+mesmos dados e **só rodam em banco local ou de demo** (a trava existe no script e na aplicação). Não use no CD.

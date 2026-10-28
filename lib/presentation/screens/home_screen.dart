@@ -228,7 +228,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Lista de desafios
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              // Reserva embaixo da lista a altura do FAB (56) + margem (16): o último card termina
+              // acima do botão "Novo desafio" em vez de ficar sob ele.
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 72),
               sliver: cp.challenges.isEmpty
                   ? SliverToBoxAdapter(
                       child: cp.hasAnyChallenge

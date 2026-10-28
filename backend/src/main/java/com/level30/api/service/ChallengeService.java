@@ -67,7 +67,7 @@ public class ChallengeService {
     @Transactional
     public ChallengeResponse create(UUID userId, ChallengeRequest req) {
         User user = users.findById(userId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado."));
         Challenge challenge = Challenge.create(
                 user,
                 req.title().trim(),
@@ -91,7 +91,7 @@ public class ChallengeService {
         Challenge c = ownedOrNotFound(userId, challengeId);
 
         if (c.isCompleted()) {
-            throw new RegraNegocioException("Desafio ja concluido.");
+            throw new RegraNegocioException("Desafio já concluído.");
         }
 
         Instant now = Instant.now();
@@ -101,7 +101,7 @@ public class ChallengeService {
             LocalDate ultima = LocalDate.ofInstant(c.getLastActivityAt(), ZONE);
             if (ultima.isEqual(hoje)) {
                 throw new RegraNegocioException(
-                        "Voce ja concluiu este desafio hoje.", HttpStatus.CONFLICT);
+                        "Você já concluiu este desafio hoje.", HttpStatus.CONFLICT);
             }
         }
 
@@ -192,6 +192,6 @@ public class ChallengeService {
 
     private Challenge ownedOrNotFound(UUID userId, UUID challengeId) {
         return challenges.findByIdAndUserId(challengeId, userId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio nao encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio não encontrado."));
     }
 }

@@ -16,6 +16,6 @@ public enum DirecaoOrdenacao {
                 return d;
             }
         }
-        throw new RegraNegocioException("direcao invalida. Use ASC ou DESC.", HttpStatus.BAD_REQUEST);
+        throw new RegraNegocioException("direção inválida. Use ASC ou DESC.", HttpStatus.BAD_REQUEST);
     }
 }

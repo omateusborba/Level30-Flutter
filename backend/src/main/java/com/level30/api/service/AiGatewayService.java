@@ -50,6 +50,18 @@ public class AiGatewayService {
         factory.setConnectTimeout(Duration.ofSeconds(5));
         factory.setReadTimeout(Duration.ofSeconds(timeoutSeconds));
         this.restClient = RestClient.builder().requestFactory(factory).build();
+
+        // Motivo explícito no log: antes, sem AI_WORKER_URL o fallback era silencioso e a recomendação
+        // aparecia como "Sugestão padrão" sem nenhuma pista do porquê.
+        if (this.workerUrl.isEmpty()) {
+            log.warn("IA desligada: AI_WORKER_URL não está definida. Recomendações usam o texto padrão e o "
+                    + "assistente responde 'indisponível'. Defina AI_WORKER_URL e AI_SERVICE_TOKEN (ver docs/fase7/PIPELINE.md).");
+        } else if (this.serviceToken.isEmpty()) {
+            log.warn("IA configurada ({}) mas AI_SERVICE_TOKEN está vazio: o Worker vai recusar as chamadas (401).",
+                    this.workerUrl);
+        } else {
+            log.info("IA ligada: gateway em {}", this.workerUrl);
+        }
     }
 
     private boolean gatewayConfigured() {
@@ -80,7 +92,7 @@ public class AiGatewayService {
                 }
                 log.warn("Gateway de IA respondeu sem 'message'; caindo no fallback.");
             } catch (Exception ex) {
-                log.warn("Gateway de IA falhou em /recommendation: {}", ex.getMessage());
+                log.warn("Gateway de IA falhou em /recommendation ({}): {} — usando texto padrão.", ex.getClass().getSimpleName(), ex.getMessage());
             }
         }
         return new RecommendationResponse(fallbackMessage(c, level), score, level, false);
@@ -91,7 +103,7 @@ public class AiGatewayService {
     /** C2 — frase de apoio ao replanejamento. Nunca lança: cai no texto determinístico. */
     public AiText replanText(Challenge c, int novosDias) {
         String fallback = "Sem pressa — estender \"" + c.getTitle() + "\" para " + novosDias
-                + " dias te dá fôlego pra retomar o ritmo. O que importa e nao parar.";
+                + " dias te dá fôlego pra retomar o ritmo. O que importa é não parar.";
         if (!gatewayConfigured()) {
             return new AiText(fallback, false);
         }
@@ -114,7 +126,7 @@ public class AiGatewayService {
                 return new AiText(s.trim(), true);
             }
         } catch (Exception ex) {
-            log.warn("Gateway de IA falhou em replanText: {}", ex.getMessage());
+            log.warn("Gateway de IA falhou em replanText ({}): {} — usando texto padrão.", ex.getClass().getSimpleName(), ex.getMessage());
         }
         return new AiText(fallback, false);
     }
@@ -149,20 +161,20 @@ public class AiGatewayService {
         } catch (AiIndisponivelException ex) {
             throw ex;
         } catch (Exception ex) {
-            log.warn("Gateway de IA falhou em /chat: {}", ex.getMessage());
+            log.warn("Gateway de IA falhou em /chat ({}): {}", ex.getClass().getSimpleName(), ex.getMessage());
             throw new AiIndisponivelException("Nao consegui responder agora. Tente novamente.");
         }
     }
 
     private String fallbackMessage(Challenge c, RiskLevel level) {
         if (MILESTONES.contains(c.getCurrentDay())) {
-            return "Marco atingido! Voce e incrivel!";
+            return "🎉 Marco atingido! Você é incrível!";
         }
         return switch (level) {
-            case LOW -> "Continue assim! Voce esta indo muito bem.";
-            case MEDIUM -> "Nao esqueca do seu desafio de hoje!";
-            case HIGH -> "Voce chegou ate aqui - nao desista agora!";
-            case CRITICAL -> "Que tal reajustar o ritmo? Recomecar e vencer.";
+            case LOW -> "Continue assim! Você está indo muito bem.";
+            case MEDIUM -> "Não esqueça do seu desafio de hoje!";
+            case HIGH -> "Você chegou até aqui — não desista agora!";
+            case CRITICAL -> "Que tal reajustar o ritmo? Recomeçar é vencer.";
         };
     }
 }

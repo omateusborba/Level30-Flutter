@@ -6,10 +6,10 @@ package com.level30.api.domain.model;
  */
 public enum SuggestedAction {
     NONE("Continue assim! Voce esta indo muito bem."),
-    SEND_REMINDER("Nao esqueca do seu desafio de hoje!"),
-    SEND_MOTIVATION("Voce chegou ate aqui - nao desista agora!"),
-    SUGGEST_REPLAN("Que tal reajustar o ritmo? Recomecar e vencer."),
-    CELEBRATE_MILESTONE("Marco atingido! Voce e incrivel!");
+    SEND_REMINDER("Não esqueça do seu desafio de hoje!"),
+    SEND_MOTIVATION("Você chegou até aqui — não desista agora!"),
+    SUGGEST_REPLAN("Que tal reajustar o ritmo? Recomeçar é vencer."),
+    CELEBRATE_MILESTONE("🎉 Marco atingido! Você é incrível!");
 
     private final String message;
 
