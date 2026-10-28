@@ -24,8 +24,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.oracle.OracleContainer;
 
 /**
@@ -38,7 +36,8 @@ import org.testcontainers.oracle.OracleContainer;
  *
  * <p><strong>Marcado {@code @Tag("oracle")} e excluído do build padrão</strong> (ver
  * {@code excludedGroups} no {@code pom.xml}) — a imagem é pesada e exige Docker. Rode com:
- * {@code mvn verify -Poracle-it}.
+ * {@code mvn verify -Poracle-it}
+ * (Docker 29+ local: acrescente {@code -DargLine=-Dapi.version=1.44}).
  *
  * <p><strong>Nota de quem escreveu este teste:</strong> não havia Docker disponível no ambiente
  * onde esta Fase 6 foi implementada, então esta classe (a parte que fala com Oracle de verdade)
@@ -47,11 +46,16 @@ import org.testcontainers.oracle.OracleContainer;
  * {@code mvn verify -Poracle-it} localmente (com Docker) antes de confiar nesta classe em CI.
  */
 @Tag("oracle")
-@Testcontainers
 class OracleEngajamentoGatewayIT {
 
-    @Container
-    static final OracleContainer ORACLE = new OracleContainer("gvenzl/oracle-free:23-slim-faststart");
+    /**
+     * Banco do teste. Por padrão sobe um Oracle descartável via Testcontainers. Se
+     * {@code ORACLE_IT_URL}/{@code ORACLE_IT_USER}/{@code ORACLE_IT_PASSWORD} estiverem definidos
+     * (caso do CI, que já tem um service container Oracle), usa esse banco e começa por
+     * {@code 00_drop.sql} para partir de um schema limpo.
+     */
+    private static OracleContainer oracle;
+    private static boolean bancoExterno;
 
     private static DataSource dataSource;
     private static JdbcTemplate jdbcTemplate;
@@ -59,15 +63,24 @@ class OracleEngajamentoGatewayIT {
 
     @BeforeAll
     static void subirSchema() throws IOException, SQLException {
+        String urlExterna = System.getenv("ORACLE_IT_URL");
+        bancoExterno = urlExterna != null && !urlExterna.isBlank();
+        if (!bancoExterno) {
+            oracle = new OracleContainer("gvenzl/oracle-free:23-slim-faststart");
+            oracle.start();
+        }
         dataSource = DataSourceBuilder.create()
-                .url(ORACLE.getJdbcUrl())
-                .username(ORACLE.getUsername())
-                .password(ORACLE.getPassword())
+                .url(bancoExterno ? urlExterna : oracle.getJdbcUrl())
+                .username(bancoExterno ? System.getenv("ORACLE_IT_USER") : oracle.getUsername())
+                .password(bancoExterno ? System.getenv("ORACLE_IT_PASSWORD") : oracle.getPassword())
                 .driverClassName("oracle.jdbc.OracleDriver")
                 .build();
         jdbcTemplate = new JdbcTemplate(dataSource);
 
         Path pastaScripts = Path.of("..", "db", "oracle");
+        if (bancoExterno) {
+            rodarScript(pastaScripts.resolve("00_drop.sql"));
+        }
         rodarScript(pastaScripts.resolve("01_ddl.sql"));
         rodarScript(pastaScripts.resolve("02_carga_simulada.sql"));
         rodarScript(pastaScripts.resolve("03_plsql.sql"));
@@ -89,6 +102,9 @@ class OracleEngajamentoGatewayIT {
             } catch (Exception ignored) {
                 // pool de teste, sem problema se o close falhar
             }
+        }
+        if (oracle != null) {
+            oracle.stop();
         }
     }
 

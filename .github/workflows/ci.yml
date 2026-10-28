@@ -1,20 +1,46 @@
 name: ci
 
+# Fase 7 — pipeline de integração contínua. Jobs paralelos: api (com Oracle), app, dashboard.
+# Detalhes e diagrama em docs/fase7/PIPELINE.md.
+
 on:
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash   # bash -eo pipefail: falha no meio de um pipe para o `tee` do log não passa batida
+
 jobs:
-  backend:
+  api:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    timeout-minutes: 30
+    env:
+      # Credenciais descartáveis: o Oracle só existe dentro deste job. Não são secrets.
+      ORACLE_APP_USER: level30
+      ORACLE_APP_PASSWORD: l30ci${{ github.run_id }}x${{ github.run_attempt }}
+    services:
+      oracle:
+        image: gvenzl/oracle-free:23-slim-faststart
+        env:
+          ORACLE_PASSWORD: l30sys${{ github.run_id }}x${{ github.run_attempt }}
+          APP_USER: level30
+          APP_USER_PASSWORD: l30ci${{ github.run_id }}x${{ github.run_attempt }}
+        ports:
+          - 1521:1521
+        options: >-
+          --health-cmd healthcheck.sh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -22,24 +48,101 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - run: mvn -B test
+      - run: mkdir -p ci-logs
 
-  flutter:
+      - name: Build e testes unitários
+        working-directory: backend
+        run: mvn -B verify 2>&1 | tee ../ci-logs/api-unit.log
+
+      # Os scripts rodam dentro do service container (docker cp + sqlplus). Ordem: schema da Fase 6,
+      # objetos da Fase 7, smoke test. 04/05 ficam de fora (demonstração / exige CREATE JOB).
+      - name: Aplicar scripts Oracle e rodar o smoke test
+        run: |
+          set -euo pipefail
+          CID='${{ job.services.oracle.id }}'
+          docker cp db/oracle "$CID:/tmp/l30"
+          sql() {
+            docker exec -w /tmp/l30 "$CID" sqlplus -L -S \
+              "$ORACLE_APP_USER/$ORACLE_APP_PASSWORD@//localhost/FREEPDB1" "$@"
+          }
+          {
+            for f in 00_drop 01_ddl 02_carga_simulada 03_plsql \
+                     06_pkg_engajamento 07_trg_audit_conclusao 08_trg_status_alerta \
+                     09_pkg_consultas 10_consolidacao; do
+              echo "::group::$f.sql"
+              sql "@$f.sql"
+              echo "::endgroup::"
+            done
+            echo "::group::99_smoke_test.sql"
+            sql @99_smoke_test.sql
+            echo "::endgroup::"
+          } 2>&1 | tee ci-logs/oracle-scripts.log
+          # Erros de compilação/execução não derrubam o sqlplus sozinhos: confere o log e USER_ERRORS
+          if grep -E '^(ORA|PLS|SP2)-[0-9]+' ci-logs/oracle-scripts.log; then
+            echo "::error::Erro Oracle ao aplicar os scripts (ver log acima)"; exit 1
+          fi
+          ERROS=$(printf 'SET HEADING OFF FEEDBACK OFF PAGESIZE 0\nSELECT COUNT(*) FROM user_errors;\n' | docker exec -i "$CID" \
+            sqlplus -L -S "$ORACLE_APP_USER/$ORACLE_APP_PASSWORD@//localhost/FREEPDB1" | tr -d '[:space:]')
+          echo "USER_ERRORS = $ERROS"
+          test "$ERROS" = "0"
+
+      # Reaproveita o service container (ORACLE_IT_*) em vez de subir outro via Testcontainers.
+      - name: Testes de integração (Oracle)
+        working-directory: backend
+        env:
+          ORACLE_IT_URL: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+          ORACLE_IT_USER: ${{ env.ORACLE_APP_USER }}
+          ORACLE_IT_PASSWORD: ${{ env.ORACLE_APP_PASSWORD }}
+        run: mvn -B verify -Poracle-it 2>&1 | tee ../ci-logs/api-oracle-it.log
+
+      - name: Resumo (testes e cobertura)
+        if: always()
+        run: python3 .github/scripts/summary-api.py >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar relatórios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-relatorios
+          path: |
+            backend/target/surefire-reports
+            backend/target/site/jacoco
+          if-no-files-found: warn
+      - name: Publicar logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-logs
+          path: ci-logs
+          if-no-files-found: warn
+
+  app:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
+      - run: mkdir -p ci-logs
+      - run: flutter pub get 2>&1 | tee ci-logs/app-pub-get.log
+      - run: flutter analyze 2>&1 | tee ci-logs/app-analyze.log
+      - run: flutter test 2>&1 | tee ci-logs/app-test.log
+      - name: Publicar logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-logs
+          path: ci-logs
+          if-no-files-found: warn
 
   dashboard:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
+        shell: bash
         working-directory: dashboard
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +152,14 @@ jobs:
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
       - uses: browser-actions/setup-chrome@v1
-      - run: npm ci
-      - run: npm test
-      - run: npm run build -- --configuration production
+      - run: mkdir -p ../ci-logs
+      - run: npm ci 2>&1 | tee ../ci-logs/dashboard-npm-ci.log
+      - run: npm test 2>&1 | tee ../ci-logs/dashboard-test.log
+      - run: npm run build -- --configuration production 2>&1 | tee ../ci-logs/dashboard-build.log
+      - name: Publicar logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-logs
+          path: ci-logs
+          if-no-files-found: warn

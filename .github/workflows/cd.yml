@@ -1,0 +1,180 @@
+name: cd
+
+# Fase 7 — deploy da API (jar) na VM Oracle Cloud via SSH.
+# Só roda depois que o CI da main passa (workflow_run) ou manualmente (workflow_dispatch).
+# O environment `production` tem required reviewers: nada é implantado sem aprovação humana.
+# Secrets/variables e procedimento manual: docs/fase7/PIPELINE.md.
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  deploy:
+    # workflow_run dispara também quando o CI falha; só segue se ele passou
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production   # required reviewers = aprovação humana antes de qualquer passo
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      HEALTH_URL: ${{ vars.API_HEALTH_URL || 'https://api.level30.online/actuator/health' }}
+      REMOTE_DIR: Level30-Flutter   # relativo ao home do usuário da VM (layout atual do deploy)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mkdir -p ci-logs
+
+      - name: Build do jar
+        id: build
+        working-directory: backend
+        run: |
+          mvn -B -DskipTests clean package 2>&1 | tee ../ci-logs/cd-build.log
+          JAR=$(find target -maxdepth 1 -name 'level30-api-*.jar' ! -name '*.original' | head -n1)
+          echo "jar=backend/$JAR" >> "$GITHUB_OUTPUT"
+          echo "versao=$(basename "$JAR" .jar | sed 's/^level30-api-//')+${DEPLOY_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # O Oracle da FIAP pode não aceitar conexão vinda do GitHub: ligue com a variable
+      # ORACLE_DEPLOY_ENABLED=true. Aplica só os scripts idempotentes da Fase 7 (CREATE OR REPLACE e
+      # criação guardada); o schema base (01..03) é pré-requisito, ver docs/fase7/PIPELINE.md.
+      - name: Migrar Oracle (SQLcl)
+        id: oracle
+        if: vars.ORACLE_DEPLOY_ENABLED == 'true'
+        env:
+          ORACLE_URL: ${{ secrets.ORACLE_URL }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_PASSWORD: ${{ secrets.ORACLE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o sqlcl.zip https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-latest.zip
+          unzip -q sqlcl.zip
+          {
+            echo 'WHENEVER SQLERROR EXIT FAILURE ROLLBACK'
+            echo "CONNECT ${ORACLE_USER}/\"${ORACLE_PASSWORD}\"@${ORACLE_URL}"
+            for f in 06_pkg_engajamento 07_trg_audit_conclusao 08_trg_status_alerta 09_pkg_consultas 10_consolidacao; do
+              echo "@db/oracle/$f.sql"
+            done
+            echo "SET HEADING OFF FEEDBACK OFF"
+            echo "DECLARE n NUMBER; BEGIN SELECT COUNT(*) INTO n FROM user_errors; IF n > 0 THEN RAISE_APPLICATION_ERROR(-20900, 'USER_ERRORS=' || n); END IF; END;"
+            echo "/"
+            echo "EXIT"
+          } | ./sqlcl/bin/sql -S /nolog 2>&1 | tee ci-logs/cd-oracle.log
+          echo "resultado=aplicada" >> "$GITHUB_OUTPUT"
+
+      - name: Preparar SSH
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if [ -n "${VM_KNOWN_HOSTS:-}" ]; then
+            printf '%s\n' "$VM_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VM_KNOWN_HOSTS não definido; confiando na chave do host no primeiro contato (ssh-keyscan)."
+            ssh-keyscan -T 10 "$VM_HOST" >> ~/.ssh/known_hosts
+          fi
+
+      # A VM tem 1 GB: o jar é buildado aqui e só copiado. A configuração dela (compose, .env,
+      # -Xmx320m) não é tocada; só trocamos o jar em backend/target e recriamos o serviço `api`.
+      - name: Deploy da API na VM
+        id: deploy
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          JAR: ${{ steps.build.outputs.jar }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes $VM_USER@$VM_HOST"
+          NOME="level30-api-${DEPLOY_SHA::7}.jar"
+          scp -i "$HOME/.ssh/deploy_key" -o BatchMode=yes "$JAR" "$VM_USER@$VM_HOST:/tmp/$NOME"
+          $SSH bash -s -- "$REMOTE_DIR" "$NOME" <<'REMOTE' 2>&1 | tee ci-logs/cd-deploy.log
+          set -euo pipefail
+          DIR="$HOME/$1"; NOME="$2"
+          mkdir -p "$DIR/releases"
+          # guarda o jar em produção como "previous" para o rollback do smoke test
+          ATUAL=$(ls "$DIR"/backend/target/level30-api-*.jar 2>/dev/null | head -n1 || true)
+          if [ -n "$ATUAL" ]; then cp -f "$ATUAL" "$DIR/releases/previous.jar"; fi
+          mv "/tmp/$NOME" "$DIR/releases/$NOME"
+          rm -f "$DIR"/backend/target/level30-api-*.jar
+          cp "$DIR/releases/$NOME" "$DIR/backend/target/$NOME"
+          cd "$DIR/deploy" && sudo docker compose up -d --build api
+          REMOTE
+
+      - name: Smoke test (/actuator/health)
+        id: smoke
+        run: |
+          for i in $(seq 1 18); do
+            CODE=$(curl -s -o ci-logs/health.json -w '%{http_code}' --max-time 10 "$HEALTH_URL" || true)
+            echo "tentativa $i: HTTP $CODE" | tee -a ci-logs/cd-smoke.log
+            if [ "$CODE" = "200" ] && grep -q '"UP"' ci-logs/health.json; then exit 0; fi
+            sleep 10
+          done
+          echo "::error::API não ficou saudável após o deploy"; exit 1
+
+      - name: Rollback para o jar anterior
+        if: failure() && steps.deploy.outcome == 'success' && steps.smoke.outcome == 'failure'
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          ssh -i "$HOME/.ssh/deploy_key" -o BatchMode=yes "$VM_USER@$VM_HOST" bash -s -- "$REMOTE_DIR" <<'REMOTE' 2>&1 | tee -a ci-logs/cd-deploy.log
+          set -euo pipefail
+          DIR="$HOME/$1"
+          test -f "$DIR/releases/previous.jar" || { echo "sem jar anterior para restaurar"; exit 1; }
+          rm -f "$DIR"/backend/target/level30-api-*.jar
+          cp "$DIR/releases/previous.jar" "$DIR/backend/target/level30-api-previous.jar"
+          cd "$DIR/deploy" && sudo docker compose up -d --build api
+          REMOTE
+
+      - name: Resumo do deploy
+        if: always()
+        env:
+          VERSAO: ${{ steps.build.outputs.versao }}
+        run: |
+          {
+            echo "### Deploy em produção"
+            echo
+            echo "| Item | Resultado |"
+            echo "|---|---|"
+            echo "| Commit | \`${DEPLOY_SHA}\` |"
+            echo "| Versão | \`${VERSAO:-n/d}\` |"
+            echo "| Migração Oracle | ${{ steps.oracle.outcome == 'success' && 'aplicada' || (steps.oracle.outcome == 'skipped' && 'ignorada (ORACLE_DEPLOY_ENABLED != true)' || 'FALHOU') }} |"
+            echo "| Deploy na VM | ${{ steps.deploy.outcome }} |"
+            echo "| Smoke test | ${{ steps.smoke.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remover chave SSH do runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Publicar logs do deploy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cd-logs
+          path: ci-logs
+          if-no-files-found: warn
