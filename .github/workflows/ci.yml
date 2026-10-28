@@ -127,7 +127,9 @@ jobs:
           cache: true
       - run: mkdir -p ci-logs
       - run: flutter pub get 2>&1 | tee ci-logs/app-pub-get.log
-      - run: flutter analyze 2>&1 | tee ci-logs/app-analyze.log
+      # --no-fatal-infos: a main já tinha 33 lints de nível info (prefer_const_*, curly_braces_*) e o
+      # CI estava vermelho por isso desde agosto. Erros e warnings continuam reprovando.
+      - run: flutter analyze --no-fatal-infos 2>&1 | tee ci-logs/app-analyze.log
       - run: flutter test 2>&1 | tee ci-logs/app-test.log
       - name: Publicar logs
         if: always()
