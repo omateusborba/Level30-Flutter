@@ -19,9 +19,18 @@ A réplica é alimentada por evento (`pr_registrar_conclusao`), sem ETL separado
 | 0 | `00_drop.sql` | Limpeza (só objetos do projeto) |
 | 1 | `01_ddl.sql` | Tabelas, constraints, índices e comentários |
 | 2 | `02_carga_simulada.sql` | 13 usuários, desafios e ~75 dias de histórico |
-| 3 | `03_plsql.sql` | Functions e procedures |
-| 4 | `04_uso_pratico.sql` | Consultas e execuções para os prints |
-| 5 | `05_job_opcional.sql` | Agendamento diário (requer `CREATE JOB`) |
+| 3 | `03_plsql.sql` | Functions e procedures (Fase 6) |
+| 4 | `06_pkg_engajamento.sql` | **Fase 7** — `PKG_L30_ENGAJAMENTO` (spec + body) |
+| 5 | `07_trg_audit_conclusao.sql` | **Fase 7** — `L30_AUDIT_LOG` + trigger de auditoria |
+| 6 | `08_trg_status_alerta.sql` | **Fase 7** — compound trigger do alerta de adesão |
+| 7 | `09_pkg_consultas.sql` | **Fase 7** — `PKG_L30_CONSULTAS` (Dynamic SQL seguro) |
+| 8 | `10_consolidacao.sql` | **Fase 7** — remove as rotinas standalone que agora vivem no package |
+| 9 | `04_uso_pratico.sql` | Consultas e execuções para os prints (usa `pkg_l30_engajamento.*`; rode **depois** do 10) |
+| 10 | `05_job_opcional.sql` | Agendamento diário (requer `CREATE JOB`) |
+| — | `99_smoke_test.sql` | **Fase 7** — recompila 06..10, confere `USER_ERRORS`, testa auditoria, alerta e injeção; sai com erro se algo falhar |
+
+> A numeração dos arquivos é histórica; a **ordem de execução** é a da primeira coluna. Detalhes dos objetos
+> da Fase 7 em [`docs/fase7/OBJETOS_PLSQL.md`](../../docs/fase7/OBJETOS_PLSQL.md).
 
 No SQL Developer, rode cada arquivo como script (F5). Compatível com Oracle 19c ou superior.
 
@@ -40,11 +49,13 @@ ORACLE_SYS_PASSWORD=senhaSys123 ORACLE_USER=level30 ORACLE_PASSWORD=senhaApp123 
 docker compose -f docker-compose.oracle.yml ps
 
 # 3. Rode os scripts, nesta ordem, como o usuário da aplicação (não como SYSTEM)
-for f in 00_drop 01_ddl 02_carga_simulada 03_plsql 04_uso_pratico; do
+for f in 00_drop 01_ddl 02_carga_simulada 03_plsql \
+         06_pkg_engajamento 07_trg_audit_conclusao 08_trg_status_alerta 09_pkg_consultas 10_consolidacao \
+         04_uso_pratico; do
   docker exec -i level30-oracle sqlplus -S level30/senhaApp123@//localhost/FREEPDB1 @/scripts/$f.sql
 done
 
-# 05_job_opcional.sql exige o privilégio CREATE JOB — rode à parte e ignore
+# 99_smoke_test.sql valida tudo (rode com `-w /scripts`); 05_job_opcional.sql exige o privilégio CREATE JOB — rode à parte e ignore
 # ORA-27486 se o usuário não tiver o privilégio (comum em ambiente acadêmico):
 docker exec -i level30-oracle sqlplus -S level30/senhaApp123@//localhost/FREEPDB1 @/scripts/05_job_opcional.sql
 ```
@@ -76,6 +87,7 @@ erDiagram
     L30_USERS ||--o{ L30_ALERTS : recebe
     L30_CHALLENGES |o--o{ L30_ALERTS : origina
     L30_USERS ||--o{ L30_ENGAGEMENT_REPORTS : consta
+    L30_COMPLETIONS }o..o{ L30_AUDIT_LOG : "auditada por trigger (Fase 7, sem FK)"
 
     L30_USERS {
         VARCHAR2 id PK
@@ -134,6 +146,16 @@ erDiagram
         VARCHAR2 status
         VARCHAR2 detail
         NUMBER rows_affected
+    }
+    L30_AUDIT_LOG {
+        NUMBER id PK
+        VARCHAR2 tabela
+        VARCHAR2 operacao
+        VARCHAR2 registro_id
+        CLOB dados_antigos
+        CLOB dados_novos
+        VARCHAR2 usuario_banco
+        TIMESTAMP criado_em
     }
 ```
 
