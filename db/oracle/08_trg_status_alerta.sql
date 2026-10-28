@@ -2,7 +2,7 @@
 -- Level30 · Smart HAS — Fase 7
 -- 08_trg_status_alerta.sql — TRG_L30_STATUS_ALERTA (COMPOUND TRIGGER)
 --
--- Fonte única da regra "adesão baixa":
+-- Dispara a regra "adesão baixa" (definida em pkg_l30_engajamento.pr_avaliar_alerta_adesao):
 --   adesão 30d < pkg_l30_engajamento.c_limite_adesao -> alerta ADESAO_BAIXA aberto
 --   adesão 30d >= limite                              -> alerta aberto é RESOLVIDO
 --   adesão NULL (sem desafio no período)              -> nada muda
@@ -33,43 +33,11 @@ COMPOUND TRIGGER
 
     AFTER STATEMENT IS
         v_user  l30_completions.user_id%TYPE;
-        v_taxa  NUMBER;
     BEGIN
         v_user := g_usuarios.FIRST;
         WHILE v_user IS NOT NULL LOOP
-            v_taxa := pkg_l30_engajamento.fn_taxa_adesao(v_user);
-
-            IF v_taxa IS NOT NULL AND v_taxa < pkg_l30_engajamento.c_limite_adesao THEN
-                MERGE INTO l30_alerts a
-                USING (SELECT v_user AS user_id,
-                              v_taxa AS taxa,
-                              CASE WHEN v_taxa < 25 THEN 'ALTA' ELSE 'MEDIA' END AS severidade
-                         FROM dual) s
-                   ON (a.user_id = s.user_id AND a.alert_type = 'ADESAO_BAIXA' AND a.resolved = 0)
-                 WHEN MATCHED THEN
-                      UPDATE SET a.measured_value = s.taxa,
-                                 a.severity       = s.severidade,
-                                 a.message        = 'Adesão de 30 dias em '
-                                                    || TO_CHAR(s.taxa, 'FM990D0', 'NLS_NUMERIC_CHARACTERS='',.''')
-                                                    || '%, abaixo da meta de '
-                                                    || pkg_l30_engajamento.c_limite_adesao || '%'
-                 WHEN NOT MATCHED THEN
-                      INSERT (user_id, challenge_id, alert_type, severity, message, measured_value)
-                      VALUES (s.user_id, NULL, 'ADESAO_BAIXA', s.severidade,
-                              'Adesão de 30 dias em '
-                              || TO_CHAR(s.taxa, 'FM990D0', 'NLS_NUMERIC_CHARACTERS='',.''')
-                              || '%, abaixo da meta de '
-                              || pkg_l30_engajamento.c_limite_adesao || '%',
-                              s.taxa);
-            ELSIF v_taxa IS NOT NULL THEN
-                UPDATE l30_alerts
-                   SET resolved    = 1,
-                       resolved_at = SYSTIMESTAMP
-                 WHERE user_id    = v_user
-                   AND alert_type = 'ADESAO_BAIXA'
-                   AND resolved   = 0;
-            END IF;
-
+            -- a regra mora no package (fonte única); a trigger só decide QUANDO avaliar
+            pkg_l30_engajamento.pr_avaliar_alerta_adesao(v_user);
             v_user := g_usuarios.NEXT(v_user);
         END LOOP;
         g_usuarios.DELETE;

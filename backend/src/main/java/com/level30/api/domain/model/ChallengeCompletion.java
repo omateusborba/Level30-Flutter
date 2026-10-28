@@ -60,6 +60,12 @@ public class ChallengeCompletion {
 
     public static ChallengeCompletion of(Challenge challenge, int dayNumber,
                                          LocalDate completedOn, int xpDelta, String note) {
+        return of(challenge, dayNumber, completedOn, xpDelta, note, Instant.now());
+    }
+
+    /** Usado pelo seed da demo para registrar conclusões com a hora em que "aconteceram". */
+    public static ChallengeCompletion of(Challenge challenge, int dayNumber, LocalDate completedOn,
+                                         int xpDelta, String note, Instant createdAt) {
         ChallengeCompletion e = new ChallengeCompletion();
         e.id = UUID.randomUUID();
         e.challenge = challenge;
@@ -68,7 +74,7 @@ public class ChallengeCompletion {
         e.completedOn = completedOn;
         e.xpDelta = xpDelta;
         e.note = (note == null || note.isBlank()) ? null : note.trim();
-        e.createdAt = Instant.now();
+        e.createdAt = createdAt;
         return e;
     }
 }

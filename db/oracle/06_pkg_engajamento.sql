@@ -61,6 +61,13 @@ CREATE OR REPLACE PACKAGE pkg_l30_engajamento AS
         p_user_id IN l30_users.id%TYPE
     ) RETURN VARCHAR2;
 
+    -- Fonte ÚNICA da regra "adesão baixa": abre/mantém/fecha o alerta ADESAO_BAIXA do usuário
+    -- conforme fn_taxa_adesao(30 dias) x c_limite_adesao. Chamada pela trigger
+    -- TRG_L30_STATUS_ALERTA (AFTER STATEMENT) e pelo seed da demo. Não faz COMMIT.
+    PROCEDURE pr_avaliar_alerta_adesao (
+        p_user_id IN l30_users.id%TYPE
+    );
+
     -- Acionada pelo backend Java a cada conclusão. Sincroniza a réplica,
     -- registra o evento (idempotente) e trata inatividade/streak.
     -- NÃO faz COMMIT. O alerta de adesão baixa vem da trigger; p_alertas_gerados
@@ -211,6 +218,51 @@ CREATE OR REPLACE PACKAGE BODY pkg_l30_engajamento AS
             END IF;
             RAISE_APPLICATION_ERROR(-20099, 'fn_resumo_usuario: ' || SQLERRM);
     END fn_resumo_usuario;
+
+    -- ---------------------------------------------------------------
+    -- pr_avaliar_alerta_adesao
+    --   taxa < c_limite_adesao -> MERGE abre (ou atualiza) o alerta aberto
+    --   taxa >= limite          -> fecha o alerta aberto (resolved = 1)
+    --   taxa NULL               -> nada muda
+    -- ---------------------------------------------------------------
+    PROCEDURE pr_avaliar_alerta_adesao (
+        p_user_id IN l30_users.id%TYPE
+    ) IS
+        v_taxa NUMBER := fn_taxa_adesao(p_user_id);
+    BEGIN
+        IF v_taxa IS NULL THEN
+            RETURN;
+        END IF;
+
+        IF v_taxa < c_limite_adesao THEN
+            MERGE INTO l30_alerts a
+            USING (SELECT p_user_id AS user_id,
+                          v_taxa AS taxa,
+                          CASE WHEN v_taxa < 25 THEN 'ALTA' ELSE 'MEDIA' END AS severidade
+                     FROM dual) s
+               ON (a.user_id = s.user_id AND a.alert_type = 'ADESAO_BAIXA' AND a.resolved = 0)
+             WHEN MATCHED THEN
+                  UPDATE SET a.measured_value = s.taxa,
+                             a.severity       = s.severidade,
+                             a.message        = 'Adesão de 30 dias em '
+                                                || TO_CHAR(s.taxa, 'FM990D0', 'NLS_NUMERIC_CHARACTERS='',.''')
+                                                || '%, abaixo da meta de ' || c_limite_adesao || '%'
+             WHEN NOT MATCHED THEN
+                  INSERT (user_id, challenge_id, alert_type, severity, message, measured_value)
+                  VALUES (s.user_id, NULL, 'ADESAO_BAIXA', s.severidade,
+                          'Adesão de 30 dias em '
+                          || TO_CHAR(s.taxa, 'FM990D0', 'NLS_NUMERIC_CHARACTERS='',.''')
+                          || '%, abaixo da meta de ' || c_limite_adesao || '%',
+                          s.taxa);
+        ELSE
+            UPDATE l30_alerts
+               SET resolved    = 1,
+                   resolved_at = SYSTIMESTAMP
+             WHERE user_id    = p_user_id
+               AND alert_type = 'ADESAO_BAIXA'
+               AND resolved   = 0;
+        END IF;
+    END pr_avaliar_alerta_adesao;
 
     -- ---------------------------------------------------------------
     -- pr_registrar_conclusao
