@@ -4,7 +4,10 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AlertaEngajamentoOracle,
+  EngajamentoFiltradoOracle,
+  FiltroEngajamentoOracle,
   InatividadeVerificacaoResultado,
+  RegistroAuditoriaOracle,
   RelatorioEngajamentoOracle,
 } from '../models';
 
@@ -34,5 +37,21 @@ export class EngajamentoOracleService {
       {},
       { params: new HttpParams().set('diasLimite', String(diasLimite)) },
     );
+  }
+
+  /** Só envia os filtros preenchidos; o servidor valida ordenação por whitelist. */
+  consultar(filtro: FiltroEngajamentoOracle): Observable<EngajamentoFiltradoOracle[]> {
+    let params = new HttpParams().set('ordenarPor', filtro.ordenarPor).set('direcao', filtro.direcao);
+    if (filtro.inicio) params = params.set('inicio', filtro.inicio);
+    if (filtro.fim) params = params.set('fim', filtro.fim);
+    if (filtro.nivelMin != null) params = params.set('nivelMin', String(filtro.nivelMin));
+    if (filtro.adesaoMin != null) params = params.set('adesaoMin', String(filtro.adesaoMin));
+    return this.http.get<EngajamentoFiltradoOracle[]>(`${this.base}/admin/engajamento`, { params });
+  }
+
+  auditoria(limite = 50): Observable<RegistroAuditoriaOracle[]> {
+    return this.http.get<RegistroAuditoriaOracle[]>(`${this.base}/admin/auditoria`, {
+      params: new HttpParams().set('limite', String(limite)),
+    });
   }
 }
