@@ -19,7 +19,8 @@ flowchart TD
   build --> ssh
   ssh --> smoke["smoke test /actuator/health<br/>18 tentativas x 10 s"]
   smoke -->|falhou| rb["rollback para releases/previous.jar"]
-  smoke --> sum["resumo + artifact cd-logs"]
+  smoke -->|ok| cons["Oracle: 10_consolidacao<br/>(remove rotinas antigas)"]
+  cons --> sum["resumo + artifact cd-logs"]
 ```
 
 ## Jobs do CI
@@ -54,8 +55,9 @@ Dispara quando o `ci` termina com sucesso na `main`, ou manualmente (`workflow_d
 **Environment `production` com required reviewers**: nada é feito antes da aprovação.
 
 1. Build do jar (`mvn -DskipTests clean package`).
-2. **Migração Oracle** (SQLcl) — só se `vars.ORACLE_DEPLOY_ENABLED == 'true'`. Aplica `06..10`
-   (idempotentes) e falha se `USER_ERRORS > 0`. O schema base (`01..03`) é pré-requisito.
+2. **Migração Oracle** (SQLcl) — só se `vars.ORACLE_DEPLOY_ENABLED == 'true'`, em duas etapas. Antes do
+   deploy: `06..09` (só criam objetos; falha se `USER_ERRORS > 0`). Depois do smoke test verde:
+   `10_consolidacao` (apaga as rotinas standalone antigas). O schema base (`01..03`) é pré-requisito.
 3. **Deploy na VM por SSH** — copia o jar para `~/Level30-Flutter/releases/`, guarda o jar atual como
    `releases/previous.jar`, troca o jar em `backend/target/` e roda `docker compose up -d --build api`.
    Não toca em `docker-compose.yml`, `.env` nem na heap (`-Xmx320m`, VM de 1 GB).
@@ -99,13 +101,13 @@ Use quando o Oracle da FIAP não aceitar conexão do GitHub (mantenha `ORACLE_DE
 1. SQL Developer, conectado como o usuário RM.
 2. Pré-requisito: schema da Fase 6 aplicado (`01_ddl`, `03_plsql`; `02` é carga simulada, opcional).
 3. Rode **como script (F5)**, nesta ordem: `06_pkg_engajamento.sql`, `07_trg_audit_conclusao.sql`,
-   `08_trg_status_alerta.sql`, `09_pkg_consultas.sql`, `10_consolidacao.sql`.
+   `08_trg_status_alerta.sql`, `09_pkg_consultas.sql`; implante a API nova; só então `10_consolidacao.sql`.
 4. Confira: `SELECT * FROM user_errors;` deve vir vazio e
    `SELECT object_name, status FROM user_objects WHERE object_name LIKE '%L30%';` tudo `VALID`.
 5. Opcional: `99_smoke_test.sql` (cria e remove dados `smoke-*`; não use em base com dados que não podem receber
    uma conclusão de teste).
 6. Reinicie a API com `LEVEL30_ORACLE_ENABLED=true` se a camada estiver ligada no ambiente.
 
-> Atenção: `10_consolidacao.sql` apaga `fn_taxa_adesao`, `fn_resumo_usuario`, `pr_registrar_conclusao` e
+> Atenção (é o que o CD automatiza): `10_consolidacao.sql` apaga `fn_taxa_adesao`, `fn_resumo_usuario`, `pr_registrar_conclusao` e
 > `pr_gerar_relatorio_engajamento` standalone. Faça isso **depois** de a API nova (que chama os packages)
 > estar no ar, ou o Java antigo passa a falhar ao chamar a rotina removida.

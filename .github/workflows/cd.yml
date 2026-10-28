@@ -57,7 +57,9 @@ jobs:
       # O Oracle da FIAP pode não aceitar conexão vinda do GitHub: ligue com a variable
       # ORACLE_DEPLOY_ENABLED=true. Aplica só os scripts idempotentes da Fase 7 (CREATE OR REPLACE e
       # criação guardada); o schema base (01..03) é pré-requisito, ver docs/fase7/PIPELINE.md.
-      - name: Migrar Oracle (SQLcl)
+      # Em duas etapas: 06..09 só ADICIONAM objetos (antes do deploy, o jar novo já os encontra);
+      # 10_consolidacao APAGA as rotinas antigas e só roda depois que o smoke test passa.
+      - name: Migrar Oracle (SQLcl) — etapa aditiva
         id: oracle
         if: vars.ORACLE_DEPLOY_ENABLED == 'true'
         env:
@@ -71,7 +73,7 @@ jobs:
           {
             echo 'WHENEVER SQLERROR EXIT FAILURE ROLLBACK'
             echo "CONNECT ${ORACLE_USER}/\"${ORACLE_PASSWORD}\"@${ORACLE_URL}"
-            for f in 06_pkg_engajamento 07_trg_audit_conclusao 08_trg_status_alerta 09_pkg_consultas 10_consolidacao; do
+            for f in 06_pkg_engajamento 07_trg_audit_conclusao 08_trg_status_alerta 09_pkg_consultas; do
               echo "@db/oracle/$f.sql"
             done
             echo "SET HEADING OFF FEEDBACK OFF"
@@ -135,6 +137,22 @@ jobs:
           done
           echo "::error::API não ficou saudável após o deploy"; exit 1
 
+      - name: Migrar Oracle (SQLcl) — consolidação (remove rotinas antigas)
+        id: oracle_consolidacao
+        if: vars.ORACLE_DEPLOY_ENABLED == 'true' && steps.smoke.outcome == 'success'
+        env:
+          ORACLE_URL: ${{ secrets.ORACLE_URL }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_PASSWORD: ${{ secrets.ORACLE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'WHENEVER SQLERROR EXIT FAILURE ROLLBACK'
+            echo "CONNECT ${ORACLE_USER}/\"${ORACLE_PASSWORD}\"@${ORACLE_URL}"
+            echo "@db/oracle/10_consolidacao.sql"
+            echo "EXIT"
+          } | ./sqlcl/bin/sql -S /nolog 2>&1 | tee -a ci-logs/cd-oracle.log
+
       - name: Rollback para o jar anterior
         if: failure() && steps.deploy.outcome == 'success' && steps.smoke.outcome == 'failure'
         env:
@@ -163,6 +181,7 @@ jobs:
             echo "| Commit | \`${DEPLOY_SHA}\` |"
             echo "| Versão | \`${VERSAO:-n/d}\` |"
             echo "| Migração Oracle | ${{ steps.oracle.outcome == 'success' && 'aplicada' || (steps.oracle.outcome == 'skipped' && 'ignorada (ORACLE_DEPLOY_ENABLED != true)' || 'FALHOU') }} |"
+            echo "| Consolidação Oracle (10) | ${{ steps.oracle_consolidacao.outcome }} |"
             echo "| Deploy na VM | ${{ steps.deploy.outcome }} |"
             echo "| Smoke test | ${{ steps.smoke.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
