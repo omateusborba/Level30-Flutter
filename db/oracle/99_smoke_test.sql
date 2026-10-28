@@ -6,7 +6,7 @@
 -- Uso (SQL*Plus/SQLcl, a partir de db/oracle/):
 --   sqlplus usuario/senha@//host/FREEPDB1 @99_smoke_test.sql
 -- Pré-requisito: 01_ddl e 03_plsql já aplicados. Os dados de teste usam
--- ids "smoke-*" e são removidos no fim.
+-- ids "smoke-*" / nome ZZ_TESTE_Smoke e são removidos no fim (inclusive auditoria e log).
 -- =====================================================================
 WHENEVER SQLERROR EXIT FAILURE ROLLBACK
 SET SERVEROUTPUT ON SIZE UNLIMITED
@@ -49,7 +49,7 @@ DECLARE
         v_a NUMBER;
     BEGIN
         pkg_l30_engajamento.pr_registrar_conclusao(
-            p_user_id => v_user, p_user_name => 'Smoke Test', p_total_xp => 100,
+            p_user_id => v_user, p_user_name => 'ZZ_TESTE_Smoke', p_total_xp => 100,
             p_challenge_id => v_desafio, p_title => 'Desafio smoke',
             p_start_date => v_inicio, p_day_number => p_dia, p_streak => p_dia,
             p_completed_on => v_inicio + (p_dia - 1), p_xp_delta => 10,
@@ -116,6 +116,8 @@ BEGIN
 
     DELETE FROM l30_audit_log
      WHERE JSON_VALUE(dados_novos, '$.user_id') = v_user OR JSON_VALUE(dados_antigos, '$.user_id') = v_user;
+    -- pr_log_execucao grava em transação autônoma: o log do teste precisa ser removido à parte
+    DELETE FROM l30_execution_log WHERE detail LIKE '%' || v_desafio || '%';
     COMMIT;
 EXCEPTION
     WHEN OTHERS THEN

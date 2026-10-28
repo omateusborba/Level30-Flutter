@@ -3,6 +3,7 @@ package com.level30.api.gateway;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.level30.api.demo.DemoGuard;
 import com.level30.api.domain.engajamento.DirecaoOrdenacao;
 import com.level30.api.domain.engajamento.EngajamentoFiltrado;
 import com.level30.api.domain.engajamento.FiltroEngajamento;
@@ -16,9 +17,11 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -79,6 +82,8 @@ class OracleEngajamentoGatewayIT {
 
         Path pastaScripts = Path.of("..", "db", "oracle");
         if (bancoExterno) {
+            // 00_drop apaga o schema inteiro: só roda em banco local/de demo/descartável
+            DemoGuard.exigir("Oracle (IT)", urlExterna);
             rodarScript(pastaScripts.resolve("00_drop.sql"));
         }
         rodarScript(pastaScripts.resolve("01_ddl.sql"));
@@ -106,6 +111,28 @@ class OracleEngajamentoGatewayIT {
         if (oracle != null) {
             oracle.stop();
         }
+    }
+
+    /**
+     * Os testes nunca deixam dados: todo aluno criado aqui tem nome ZZ_TESTE_*, e este método remove
+     * usuários (cascata), auditoria e log de execução gerados por eles, mesmo quando o teste falha.
+     */
+    @AfterEach
+    void limparDadosDoTeste() {
+        List<String> usuarios = jdbcTemplate.queryForList(
+                "SELECT id FROM l30_users WHERE name LIKE 'ZZ\\_TESTE\\_%' ESCAPE '\\'", String.class);
+        List<String> desafios = jdbcTemplate.queryForList(
+                "SELECT id FROM l30_challenges WHERE user_id IN (SELECT id FROM l30_users WHERE name LIKE 'ZZ\\_TESTE\\_%' ESCAPE '\\')",
+                String.class);
+        jdbcTemplate.update("DELETE FROM l30_users WHERE name LIKE 'ZZ\\_TESTE\\_%' ESCAPE '\\'");
+        for (String id : usuarios) {
+            jdbcTemplate.update("DELETE FROM l30_audit_log WHERE JSON_VALUE(dados_novos, '$.user_id') = ? "
+                    + "OR JSON_VALUE(dados_antigos, '$.user_id') = ?", id, id);
+        }
+        for (String id : desafios) {
+            jdbcTemplate.update("DELETE FROM l30_execution_log WHERE detail LIKE ?", "%" + id + "%");
+        }
+        jdbcTemplate.update("DELETE FROM l30_execution_log WHERE status = 'ERRO' AND detail LIKE '%dia 99 fora do intervalo%'");
     }
 
     @Test
@@ -143,7 +170,7 @@ class OracleEngajamentoGatewayIT {
     @Test
     void diaForaDoIntervalo_lancaRegraNegocioException422() {
         DesafioConcluidoEvent invalido = new DesafioConcluidoEvent(
-                UUID.randomUUID(), "Aluno Teste", 0,
+                UUID.randomUUID(), "ZZ_TESTE_Aluno", 0,
                 UUID.randomUUID(), "Desafio inválido",
                 LocalDate.now().minusDays(40), 99, 1,
                 LocalDate.now(), 10);
@@ -244,14 +271,14 @@ class OracleEngajamentoGatewayIT {
     }
 
     private static DesafioConcluidoEvent evento(UUID usuario, UUID desafio, LocalDate inicio, int dia) {
-        return new DesafioConcluidoEvent(usuario, "Aluno Fase7", 100, desafio, "Desafio fase 7",
+        return new DesafioConcluidoEvent(usuario, "ZZ_TESTE_Fase7", 100, desafio, "Desafio fase 7",
                 inicio, dia, dia, inicio.plusDays(dia - 1L), 10);
     }
 
     private static DesafioConcluidoEvent eventoValido() {
         LocalDate inicio = LocalDate.now().minusDays(11);
         return new DesafioConcluidoEvent(
-                UUID.randomUUID(), "Aluno Teste", 100,
+                UUID.randomUUID(), "ZZ_TESTE_Aluno", 100,
                 UUID.randomUUID(), "Desafio de teste",
                 inicio, 12, 1,
                 LocalDate.now(), 10);
