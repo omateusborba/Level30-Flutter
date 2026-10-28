@@ -83,3 +83,9 @@ secrets.*
 /VISAO-GERAL.md
 /PROJECT.md
 
+
+# Arquivos temporários
+temp/
+
+# Banco H2 local de desenvolvimento (criado ao rodar a API)
+/data/
