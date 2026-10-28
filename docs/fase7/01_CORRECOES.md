@@ -52,13 +52,17 @@ banco da demo.
 
 ## Item 5 — Detalhes
 
-| # | Causa raiz |
-|---|---|
-| 5.1 | A ser confirmada no componente (barras só com trilho). |
-| 5.2 | A ser confirmada no CSS do login (cor do texto/estado do botão). |
-| 5.3 | A lista da Home não reserva espaço para o FAB. |
-| 5.4 | A coluna DADOS imprime o JSON inteiro em uma linha. |
-| 5.5 | `AiGatewayService.fallbackMessage` e `SuggestedAction.SUGGEST_REPLAN` (back-end) escrevem "Recomecar e vencer"; o app e o Worker usam o texto acentuado. |
-| 5.6 | `app.ai.worker-url` vazio (`AI_WORKER_URL` não definida): `gatewayConfigured()` é falso e a recomendação cai no fallback **sem nenhum log**. |
+| # | Causa raiz | Correção |
+|---|---|---|
+| 5.1 | `.bar-fill` e `.bar-track` são `<span>` (inline); `width`/`height` não se aplicam a elementos inline, então só o trilho (que virava item flex) aparecia. Só a Visão geral usa essas classes. | `display: block` nas duas (e `min-width` de 2 px). |
+| 5.2 | O print é o estado **desabilitado** (form vazio => `f.invalid`): `opacity: .45` deixa o verde apagado com texto escuro, parecendo defeito. O estado habilitado já usava o token `--accent` (contraste ≈ 13:1). | `.btn-primary:disabled` neutro (`--surface-2`/`--text-dim`, contraste AA); habilitado segue `--accent`. Continua desabilitado só com form inválido ou carregando. |
+| 5.3 | O espaço do FAB só existia no fim da página (depois do clima/citação); com o último card no rodapé da tela, o botão ficava sobre ele. Sobreposição de um FAB com conteúdo em rolagem é inerente; o que se garante é que o fim da lista nunca fica sob ele. | `SliverPadding` da lista com 72 px embaixo (FAB 56 + margem 16), além do espaçador final. |
+| 5.4 | A coluna DADOS imprimia o JSON inteiro em uma linha (`white-space: nowrap`). | Resumo ("desafio 6c47ef2d · dia 5 · +20 XP"; UPDATE mostra `XP 17 → 22`) e botão **ver JSON** que expande o antes/depois formatado. |
+| 5.5 | `AiGatewayService.fallbackMessage`, `SuggestedAction` e várias mensagens de erro do back-end sem acento ("Recomecar e vencer", "Voce ja concluiu..."). | Textos de recomendação idênticos aos do app/Worker; mensagens de erro exibidas ao usuário acentuadas. |
+| 5.6 | `AI_WORKER_URL` não definida no ambiente local: `gatewayConfigured()` falso, fallback **silencioso**. O Worker em si está saudável (HTTP 200 em ~1 s; 401 sem token). | Log `WARN` na subida dizendo o motivo (URL vazia / token vazio / ligada) e log com a classe da exceção quando o Worker falha. Procedimento em `PIPELINE.md`. |
 
-(As linhas 5.1 e 5.2 são completadas abaixo quando os componentes forem inspecionados.)
+## Resultado
+
+Ver o relatório de entrega. Seed único: 16 alunos, 36 desafios, 697 conclusões; paridade PostgreSQL x Oracle
+(alunos, desafios, conclusões 30d, XP) conferida no próprio seed e coberta por `DemoSeedIntegrationTest`.
+Observação: a Visão geral conta 17 usuários (16 alunos + a conta de coordenação); o Oracle replica só os alunos.

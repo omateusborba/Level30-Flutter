@@ -51,7 +51,7 @@ public class AdminEngajamentoController {
     @Operation(summary = "Gera um relatorio de engajamento para o periodo (maximo 366 dias)")
     public RelatorioEngajamento gerarRelatorio(@Valid @RequestBody RelatorioEngajamentoRequest req) {
         if (req.inicio().isAfter(req.fim())) {
-            throw new RegraNegocioException("Periodo invalido: inicio posterior ao fim.");
+            throw new RegraNegocioException("Período inválido: início posterior ao fim.");
         }
         return engajamentoGateway.gerarRelatorio(req.inicio(), req.fim());
     }
@@ -92,7 +92,7 @@ public class AdminEngajamentoController {
             @RequestParam(required = false) String ordenarPor,
             @RequestParam(required = false) String direcao) {
         if (inicio != null && fim != null && inicio.isAfter(fim)) {
-            throw new RegraNegocioException("Periodo invalido: inicio posterior ao fim.");
+            throw new RegraNegocioException("Período inválido: início posterior ao fim.");
         }
         if (nivelMin != null && nivelMin < 1) {
             throw new RegraNegocioException("nivelMin deve ser maior ou igual a 1.", HttpStatus.BAD_REQUEST);

@@ -27,8 +27,12 @@ A réplica é alimentada por evento (`pr_registrar_conclusao`), sem ETL separado
 | 8 | `10_consolidacao.sql` | **Fase 7** — remove as rotinas standalone que agora vivem no package |
 | 9 | `04_uso_pratico.sql` | Consultas e execuções para os prints (usa `pkg_l30_engajamento.*`; rode **depois** do 10) |
 | 10 | `05_job_opcional.sql` | Agendamento diário (requer `CREATE JOB`) |
+| — | `97_demo_auditoria.sql` | **Demo** — gera 1 UPDATE e 1 DELETE em `L30_COMPLETIONS` para a auditoria (só local/demo) |
+| — | `98_limpa_residuo_testes.sql` | **Demo** — remove alunos de teste (`ZZ_TESTE_*`, "Aluno Teste") e seus rastros (só local/demo) |
 | — | `99_smoke_test.sql` | **Fase 7** — recompila 06..10, confere `USER_ERRORS`, testa auditoria, alerta e injeção; sai com erro se algo falhar |
 
+> Para a **demo**, use `scripts/demo-reset.sh` (substitui a `02_carga_simulada.sql`: mesmas pessoas e IDs do PostgreSQL).
+>
 > A numeração dos arquivos é histórica; a **ordem de execução** é a da primeira coluna. Detalhes dos objetos
 > da Fase 7 em [`docs/fase7/OBJETOS_PLSQL.md`](../../docs/fase7/OBJETOS_PLSQL.md).
 
