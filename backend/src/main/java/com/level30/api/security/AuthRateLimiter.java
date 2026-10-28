@@ -48,7 +48,8 @@ public class AuthRateLimiter {
         if (w.count <= maxRequests) {
             return new Result(true, 0);
         }
-        long retry = (windowMillis - (now - w.startMillis)) / 1000 + 1;
+        // divisão com teto: o "/ 1000 + 1" anterior dava windowSeconds + 1 (61 s) quando a requisição chegava no mesmo ms
+        long retry = (windowMillis - (now - w.startMillis) + 999) / 1000;
         return new Result(false, Math.max(1, retry));
     }
 
