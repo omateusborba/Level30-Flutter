@@ -50,11 +50,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       challenges: cp.allChallenges,
       risks: cp.getAllRisks(),
     );
-    if (mounted)
+    if (mounted) {
       setState(() {
         _sending = false;
         _lastSent = count;
       });
+    }
   }
 
   Future<void> _sendTest(NotificationProvider np) async {
@@ -181,7 +182,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 12),
 
           // ── Lembrete diário ──────────────────────────────────────────────
-          _SectionTitle('Lembrete Diário'),
+          const _SectionTitle('Lembrete Diário'),
           const SizedBox(height: 8),
           _Card(
             child: ListTile(
@@ -216,7 +217,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 20),
 
           // ── Ações manuais ────────────────────────────────────────────────
-          _SectionTitle('Ações'),
+          const _SectionTitle('Ações'),
           const SizedBox(height: 8),
           _Card(
             child: Column(
@@ -275,7 +276,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 20),
 
           // ── Status dos desafios ──────────────────────────────────────────
-          _SectionTitle('Status dos Desafios'),
+          const _SectionTitle('Status dos Desafios'),
           const SizedBox(height: 8),
           ...risks.map((risk) {
             final challenge = cp.allChallenges.firstWhere(

@@ -1,6 +1,9 @@
 package com.level30.api.gateway;
 
 import com.level30.api.domain.engajamento.AlertaEngajamento;
+import com.level30.api.domain.engajamento.EngajamentoFiltrado;
+import com.level30.api.domain.engajamento.FiltroEngajamento;
+import com.level30.api.domain.engajamento.RegistroAuditoria;
 import com.level30.api.domain.engajamento.LinhaEngajamento;
 import com.level30.api.domain.engajamento.RelatorioEngajamento;
 import com.level30.api.domain.engajamento.ResumoEngajamentoUsuario;
@@ -25,14 +28,15 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SqlOutParameter;
 import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Component;
 
 /**
- * Fase 6 — adapter ativo quando {@code level30.oracle.enabled=true}. Fala com as procedures e
- * functions de {@code db/oracle/03_plsql.sql} via {@link SimpleJdbcCall}/{@link JdbcTemplate}
+ * Fase 6 — adapter ativo quando {@code level30.oracle.enabled=true}. Fala com os packages
+ * {@code PKG_L30_ENGAJAMENTO} e {@code PKG_L30_CONSULTAS} ({@code db/oracle/06_..09_}; Fase 7) via {@link SimpleJdbcCall}/{@link JdbcTemplate}
  * puro (sem metadados de procedure — {@code withoutProcedureColumnMetaDataAccess}, mais rápido e
  * não depende de privilégio extra no schema).
  */
@@ -41,17 +45,30 @@ import org.springframework.stereotype.Component;
 public class OracleEngajamentoGateway implements EngajamentoGateway {
 
     private static final String OUT_ALERTAS_GERADOS = "P_ALERTAS_GERADOS";
+    private static final String RETORNO_CURSOR = "RETORNO";
+
+    private static final RowMapper<EngajamentoFiltrado> LINHA_FILTRADA = (rs, rowNum) -> new EngajamentoFiltrado(
+            rs.getString("USER_ID"),
+            rs.getString("NOME"),
+            rs.getInt("TOTAL_XP"),
+            rs.getInt("NIVEL"),
+            rs.getInt("STREAK"),
+            rs.getInt("CONCLUSOES"),
+            rs.getBigDecimal("ADESAO"),
+            rs.getString("FAIXA"));
 
     private final JdbcTemplate oracleJdbcTemplate;
     private final SimpleJdbcCall registrarConclusaoCall;
     private final SimpleJdbcCall verificarInatividadeCall;
     private final SimpleJdbcCall gerarRelatorioCall;
+    private final SimpleJdbcCall engajamentoFiltradoCall;
 
     public OracleEngajamentoGateway(@Qualifier("oracleJdbcTemplate") JdbcTemplate oracleJdbcTemplate,
                                     @Qualifier("oracleDataSource") DataSource oracleDataSource) {
         this.oracleJdbcTemplate = oracleJdbcTemplate;
 
         this.registrarConclusaoCall = new SimpleJdbcCall(oracleDataSource)
+                .withCatalogName("PKG_L30_ENGAJAMENTO")
                 .withProcedureName("PR_REGISTRAR_CONCLUSAO")
                 .withoutProcedureColumnMetaDataAccess()
                 .declareParameters(
@@ -75,12 +92,29 @@ public class OracleEngajamentoGateway implements EngajamentoGateway {
                         new SqlOutParameter(OUT_ALERTAS_GERADOS, Types.NUMERIC));
 
         this.gerarRelatorioCall = new SimpleJdbcCall(oracleDataSource)
+                .withCatalogName("PKG_L30_ENGAJAMENTO")
                 .withProcedureName("PR_GERAR_RELATORIO_ENGAJAMENTO")
                 .withoutProcedureColumnMetaDataAccess()
                 .declareParameters(
                         new SqlParameter("P_INICIO", Types.DATE),
                         new SqlParameter("P_FIM", Types.DATE),
                         new SqlOutParameter("P_EXECUCAO_ID", Types.NUMERIC));
+
+        // Function com retorno SYS_REFCURSOR: o valor de retorno é declarado como OUT "return"
+        // com RowMapper, e o resultado volta no mapa de saída sob essa chave.
+        this.engajamentoFiltradoCall = new SimpleJdbcCall(oracleDataSource)
+                .withCatalogName("PKG_L30_CONSULTAS")
+                .withFunctionName("FN_ENGAJAMENTO_FILTRADO")
+                .withoutProcedureColumnMetaDataAccess()
+                .withReturnValue()
+                .declareParameters(
+                        new SqlOutParameter(RETORNO_CURSOR, Types.REF_CURSOR, LINHA_FILTRADA),
+                        new SqlParameter("P_INICIO", Types.DATE),
+                        new SqlParameter("P_FIM", Types.DATE),
+                        new SqlParameter("P_NIVEL_MIN", Types.NUMERIC),
+                        new SqlParameter("P_ADESAO_MIN", Types.NUMERIC),
+                        new SqlParameter("P_ORDENAR_POR", Types.VARCHAR),
+                        new SqlParameter("P_DIRECAO", Types.VARCHAR));
     }
 
     @Override
@@ -221,13 +255,62 @@ public class OracleEngajamentoGateway implements EngajamentoGateway {
     public ResumoEngajamentoUsuario resumoUsuario(UUID userId) {
         try {
             return oracleJdbcTemplate.queryForObject(
-                    "SELECT fn_resumo_usuario(id) AS resumo, fn_taxa_adesao(id) AS taxa FROM l30_users WHERE id = ?",
+                    "SELECT pkg_l30_engajamento.fn_resumo_usuario(id) AS resumo, pkg_l30_engajamento.fn_taxa_adesao(id) AS taxa FROM l30_users WHERE id = ?",
                     (rs, rowNum) -> new ResumoEngajamentoUsuario(
                             userId, rs.getString("resumo"), rs.getBigDecimal("taxa")),
                     userId.toString());
         } catch (EmptyResultDataAccessException e) {
             throw new RecursoNaoEncontradoException(
                     "Usuário " + userId + " não encontrado na réplica Oracle.");
+        } catch (DataAccessException e) {
+            throw traduzir(e);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<EngajamentoFiltrado> consultarEngajamento(FiltroEngajamento filtro) {
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("P_INICIO", filtro.inicio() == null ? null : Date.valueOf(filtro.inicio()));
+            params.put("P_FIM", filtro.fim() == null ? null : Date.valueOf(filtro.fim()));
+            params.put("P_NIVEL_MIN", filtro.nivelMin());
+            params.put("P_ADESAO_MIN", filtro.adesaoMin());
+            // só o name() do enum chega ao banco — nunca texto do cliente
+            params.put("P_ORDENAR_POR", filtro.ordenarPor().name());
+            params.put("P_DIRECAO", filtro.direcao().name());
+
+            Map<String, Object> saida = engajamentoFiltradoCall.execute(params);
+            return (List<EngajamentoFiltrado>) saida.get(RETORNO_CURSOR);
+        } catch (DataAccessException e) {
+            throw traduzir(e);
+        }
+    }
+
+    @Override
+    public List<RegistroAuditoria> listarAuditoria(int limite) {
+        try {
+            return oracleJdbcTemplate.query(
+                    """
+                    SELECT id, tabela, operacao, registro_id, dados_antigos, dados_novos,
+                           usuario_banco, criado_em
+                      FROM l30_audit_log
+                     ORDER BY id DESC
+                     FETCH FIRST ? ROWS ONLY
+                    """,
+                    (rs, rowNum) -> {
+                        Timestamp criadoEm = rs.getTimestamp("criado_em");
+                        return new RegistroAuditoria(
+                                rs.getLong("id"),
+                                rs.getString("tabela"),
+                                rs.getString("operacao"),
+                                rs.getString("registro_id"),
+                                rs.getString("dados_antigos"),
+                                rs.getString("dados_novos"),
+                                rs.getString("usuario_banco"),
+                                criadoEm == null ? null : criadoEm.toInstant());
+                    },
+                    limite);
         } catch (DataAccessException e) {
             throw traduzir(e);
         }
@@ -244,9 +327,16 @@ public class OracleEngajamentoGateway implements EngajamentoGateway {
      * (Oracle fora do ar, timeout, rede) -&gt; 503.
      */
     private RuntimeException traduzir(DataAccessException e) {
-        Throwable causa = e.getMostSpecificCause();
-        if (causa instanceof SQLException sql && sql.getErrorCode() >= 20000 && sql.getErrorCode() <= 20999) {
-            return new RegraNegocioException(primeiraLinhaSemPrefixo(sql.getMessage()), HttpStatus.UNPROCESSABLE_ENTITY);
+        // O driver Oracle aninha o erro real (oracle.jdbc.OracleDatabaseException, que não é
+        // SQLException) dentro do SQLException; getMostSpecificCause() pararia nele. Percorre a
+        // cadeia inteira atrás de um SQLException na faixa de erros de negócio.
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof SQLException sql && sql.getErrorCode() >= 20000 && sql.getErrorCode() <= 20999) {
+                return new RegraNegocioException(primeiraLinhaSemPrefixo(sql.getMessage()), HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+            if (t.getCause() == t) {
+                break;
+            }
         }
         return new CamadaOracleIndisponivelException("Camada Oracle indisponível.", e);
     }

@@ -1,6 +1,9 @@
 package com.level30.api.gateway;
 
 import com.level30.api.domain.engajamento.AlertaEngajamento;
+import com.level30.api.domain.engajamento.EngajamentoFiltrado;
+import com.level30.api.domain.engajamento.FiltroEngajamento;
+import com.level30.api.domain.engajamento.RegistroAuditoria;
 import com.level30.api.domain.engajamento.RelatorioEngajamento;
 import com.level30.api.domain.engajamento.ResumoEngajamentoUsuario;
 import com.level30.api.domain.event.DesafioConcluidoEvent;
@@ -30,4 +33,10 @@ public interface EngajamentoGateway {
     List<AlertaEngajamento> listarAlertas(boolean somenteAbertos);
 
     ResumoEngajamentoUsuario resumoUsuario(UUID userId);
+
+    /** Fase 7 — Dynamic SQL seguro em {@code PKG_L30_CONSULTAS.FN_ENGAJAMENTO_FILTRADO}. */
+    List<EngajamentoFiltrado> consultarEngajamento(FiltroEngajamento filtro);
+
+    /** Fase 7 — últimas linhas de {@code L30_AUDIT_LOG}, mais recentes primeiro. */
+    List<RegistroAuditoria> listarAuditoria(int limite);
 }

@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/omateusborba/Level30-Flutter/actions/workflows/ci.yml"><img src="https://github.com/omateusborba/Level30-Flutter/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter" />
   <img src="https://img.shields.io/badge/Dart-3.3+-0175C2?logo=dart" />
   <img src="https://img.shields.io/badge/Android-5.0+-3DDC84?logo=android" />
@@ -166,6 +170,32 @@ Roteiro completo em [`docs/DEMO_FASE6.md`](docs/DEMO_FASE6.md). Testes automatiz
 `mvn test` (backend, sem Oracle) e `mvn verify -Poracle-it` (com Docker — sobe um Oracle
 descartável via Testcontainers e roda os scripts de verdade). Detalhes da decisão técnica e o
 que foi/não foi executado em [`docs/MELHORIAS_FASE6.md`](docs/MELHORIAS_FASE6.md).
+
+---
+
+## Fase 7 — PL/SQL consolidado + CI/CD
+
+- **Packages:** `PKG_L30_ENGAJAMENTO` (adesão, resumo, registro de conclusão, relatório) e
+  `PKG_L30_CONSULTAS` (consulta com **Dynamic SQL seguro**: binds para valores, whitelist para ordenação).
+- **Triggers:** auditoria de conclusões em `L30_AUDIT_LOG` (JSON antes/depois) e **compound trigger** que abre
+  e fecha o alerta de adesão baixa sem cair em *mutating table*.
+- **API/dashboard:** `GET /admin/engajamento` (filtros e ordenação) e `GET /admin/auditoria`; a tela de
+  engajamento ganhou filtros e a tabela de auditoria.
+- **CI/CD (GitHub Actions):** `ci.yml` roda API (com Oracle em service container), app e dashboard;
+  `cd.yml` faz o deploy do jar na VM com aprovação humana, smoke test e rollback.
+
+Como rodar localmente:
+
+```bash
+# Oracle (Docker) + scripts + smoke test — ver db/oracle/README.md
+docker compose -f docker-compose.oracle.yml up -d
+# testes da API, incluindo os de integração com Oracle (Testcontainers, exige Docker)
+cd backend && mvn verify && mvn verify -Poracle-it
+```
+
+Documentação: [`docs/fase7/OBJETOS_PLSQL.md`](docs/fase7/OBJETOS_PLSQL.md) (objetos, fluxo, DER, segurança do
+Dynamic SQL), [`docs/fase7/PIPELINE.md`](docs/fase7/PIPELINE.md) (pipeline, secrets, deploy manual do banco) e
+[`docs/fase7/00_DESCOBERTA.md`](docs/fase7/00_DESCOBERTA.md) (divergências em relação ao plano original).
 
 ---
 

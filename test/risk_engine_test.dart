@@ -8,7 +8,7 @@ void main() {
 
   group('RiskEngine', () {
     test('streak zero deve resultar em risco médio ou maior', () {
-      final c = Challenge(
+      const c = Challenge(
         id: '1',
         title: 'Test',
         category: ChallengeCategory.study,

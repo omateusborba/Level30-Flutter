@@ -12,6 +12,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -56,6 +57,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({HttpMessageNotReadableException.class, IllegalArgumentException.class})
     public ResponseEntity<ErroResponse> handleBadRequest(Exception ex) {
         return build(HttpStatus.BAD_REQUEST, mensagemLegivel(ex), List.of());
+    }
+
+    /** Fase 7 — parâmetro de query com tipo inválido (ex.: data fora do padrão ISO) é erro do cliente. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErroResponse> handleTipoParametro(MethodArgumentTypeMismatchException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Parametro '" + ex.getName() + "' invalido.", List.of());
     }
 
     /** Fase 6 — Oracle desligado neste ambiente, ou fora do ar. Não é erro do cliente. */

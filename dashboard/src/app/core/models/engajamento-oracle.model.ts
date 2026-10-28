@@ -36,3 +36,39 @@ export interface AlertaEngajamentoOracle {
 export interface InatividadeVerificacaoResultado {
   alertasGerados: number;
 }
+
+/** GET /admin/engajamento — Dynamic SQL seguro (Fase 7, PKG_L30_CONSULTAS). */
+export type OrdenacaoEngajamento = 'ADESAO' | 'STREAK' | 'NOME' | 'NIVEL';
+export type DirecaoOrdenacao = 'ASC' | 'DESC';
+
+export interface FiltroEngajamentoOracle {
+  inicio?: string;
+  fim?: string;
+  nivelMin?: number | null;
+  adesaoMin?: number | null;
+  ordenarPor: OrdenacaoEngajamento;
+  direcao: DirecaoOrdenacao;
+}
+
+export interface EngajamentoFiltradoOracle {
+  userId: string;
+  nome: string;
+  totalXp: number;
+  nivel: number;
+  streak: number;
+  conclusoes: number;
+  adesaoPercentual: number | null;
+  faixa: FaixaEngajamento;
+}
+
+/** GET /admin/auditoria — linhas de L30_AUDIT_LOG (dados antigos/novos são JSON em texto). */
+export interface RegistroAuditoriaOracle {
+  id: number;
+  tabela: string;
+  operacao: 'I' | 'U' | 'D';
+  registroId: string | null;
+  dadosAntigos: string | null;
+  dadosNovos: string | null;
+  usuarioBanco: string;
+  criadoEm: string;
+}

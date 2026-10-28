@@ -5,7 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { EngajamentoOracleService } from '../../core/services/engajamento-oracle.service';
 import {
   AlertaEngajamentoOracle,
+  DirecaoOrdenacao,
+  EngajamentoFiltradoOracle,
   FaixaEngajamento,
+  OrdenacaoEngajamento,
+  RegistroAuditoriaOracle,
   RelatorioEngajamentoOracle,
 } from '../../core/models';
 import { apiErrorMessage } from '../../core/http-error.util';
@@ -140,6 +144,76 @@ function isoHoje(offsetDias = 0): string {
     </ng-container>
 
     <section class="section card" *ngIf="!oracleDesabilitado">
+      <h2>Consulta filtrada</h2>
+      <p class="hint">
+        Filtros e ordenação aplicados no banco (Dynamic SQL com binds e whitelist de colunas).
+      </p>
+      <form class="filters" (ngSubmit)="consultar()">
+        <label class="field">
+          <span>Início</span>
+          <input type="date" name="fInicio" [(ngModel)]="filtro.inicio" />
+        </label>
+        <label class="field">
+          <span>Fim</span>
+          <input type="date" name="fFim" [(ngModel)]="filtro.fim" />
+        </label>
+        <label class="field">
+          <span>Nível mínimo</span>
+          <input type="number" min="1" name="fNivel" [(ngModel)]="filtro.nivelMin" />
+        </label>
+        <label class="field">
+          <span>Adesão mínima (%)</span>
+          <input type="number" min="0" max="100" name="fAdesao" [(ngModel)]="filtro.adesaoMin" />
+        </label>
+        <label class="field">
+          <span>Ordenar por</span>
+          <select name="fOrdem" [(ngModel)]="filtro.ordenarPor">
+            <option *ngFor="let o of ordenacoes" [value]="o">{{ o }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Direção</span>
+          <select name="fDirecao" [(ngModel)]="filtro.direcao">
+            <option *ngFor="let d of direcoes" [value]="d">{{ d }}</option>
+          </select>
+        </label>
+        <button type="submit" class="btn-primary" [disabled]="consultando">
+          {{ consultando ? 'Consultando…' : 'Aplicar filtros' }}
+        </button>
+      </form>
+
+      <div class="alert alert-error" *ngIf="erroConsulta">{{ erroConsulta }}</div>
+      <div class="state" *ngIf="!consultando && !erroConsulta && consulta.length === 0">
+        Nenhum aluno para os filtros escolhidos.
+      </div>
+      <div class="table-wrap" *ngIf="consulta.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Aluno</th><th>Nível</th><th>XP</th><th>Streak</th>
+              <th>Conclusões</th><th>Adesão</th><th>Faixa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of consulta">
+              <td>{{ l.nome }}</td>
+              <td>{{ l.nivel }}</td>
+              <td>{{ l.totalXp }}</td>
+              <td>{{ l.streak }}d</td>
+              <td>{{ l.conclusoes }}</td>
+              <td>{{ l.adesaoPercentual === null ? '—' : l.adesaoPercentual.toFixed(1) + '%' }}</td>
+              <td>
+                <span class="badge" [style.background]="corFaixa(l.faixa)">
+                  {{ l.faixa | faixaEngajamentoLabel }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section card" *ngIf="!oracleDesabilitado">
       <div class="fila-head">
         <h2>Alertas abertos</h2>
         <button type="button" class="btn-ghost" [disabled]="verificando" (click)="verificarInatividade()">
@@ -172,6 +246,35 @@ function isoHoje(offsetDias = 0): string {
         </table>
       </div>
     </section>
+
+    <section class="section card" *ngIf="!oracleDesabilitado">
+      <div class="fila-head">
+        <h2>Auditoria de conclusões</h2>
+        <button type="button" class="btn-ghost" [disabled]="carregandoAuditoria" (click)="carregarAuditoria()">
+          Atualizar
+        </button>
+      </div>
+      <div class="state" *ngIf="carregandoAuditoria"><span class="spinner"></span>&nbsp; Carregando…</div>
+      <div class="state" *ngIf="!carregandoAuditoria && auditoria.length === 0">
+        Nenhuma operação registrada ainda.
+      </div>
+      <div class="table-wrap" *ngIf="!carregandoAuditoria && auditoria.length > 0">
+        <table>
+          <thead>
+            <tr><th>Quando</th><th>Operação</th><th>Registro</th><th>Usuário do banco</th><th>Dados</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of auditoria">
+              <td>{{ a.criadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td>{{ rotuloOperacao(a.operacao) }}</td>
+              <td>{{ a.tabela }} #{{ a.registroId }}</td>
+              <td>{{ a.usuarioBanco }}</td>
+              <td><code>{{ a.dadosNovos ?? a.dadosAntigos }}</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   `,
   styles: [`
     .fila-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -192,11 +295,58 @@ export class OracleEngajamentoComponent implements OnInit {
   verificando = false;
   alertas: AlertaEngajamentoOracle[] = [];
 
+  readonly ordenacoes: OrdenacaoEngajamento[] = ['ADESAO', 'STREAK', 'NOME', 'NIVEL'];
+  readonly direcoes: DirecaoOrdenacao[] = ['DESC', 'ASC'];
+  filtro: {
+    inicio: string;
+    fim: string;
+    nivelMin: number | null;
+    adesaoMin: number | null;
+    ordenarPor: OrdenacaoEngajamento;
+    direcao: DirecaoOrdenacao;
+  } = { inicio: '', fim: '', nivelMin: null, adesaoMin: null, ordenarPor: 'ADESAO', direcao: 'DESC' };
+  consultando = false;
+  erroConsulta = '';
+  consulta: EngajamentoFiltradoOracle[] = [];
+
+  carregandoAuditoria = false;
+  auditoria: RegistroAuditoriaOracle[] = [];
+
   constructor(private engajamento: EngajamentoOracleService) {}
 
   ngOnInit(): void {
     this.gerarRelatorio();
     this.carregarAlertas();
+    this.consultar();
+    this.carregarAuditoria();
+  }
+
+  consultar(): void {
+    this.consultando = true;
+    this.erroConsulta = '';
+    this.engajamento.consultar(this.filtro).subscribe({
+      next: (linhas) => {
+        this.consulta = linhas;
+        this.consultando = false;
+      },
+      error: (err: unknown) =>
+        this.tratarErro(err, () => (this.consultando = false), (msg) => (this.erroConsulta = msg)),
+    });
+  }
+
+  carregarAuditoria(): void {
+    this.carregandoAuditoria = true;
+    this.engajamento.auditoria(50).subscribe({
+      next: (registros) => {
+        this.auditoria = registros;
+        this.carregandoAuditoria = false;
+      },
+      error: (err: unknown) => this.tratarErro(err, () => (this.carregandoAuditoria = false)),
+    });
+  }
+
+  rotuloOperacao(op: string): string {
+    return op === 'I' ? 'Inclusão' : op === 'U' ? 'Alteração' : 'Exclusão';
   }
 
   gerarRelatorio(): void {
@@ -246,11 +396,15 @@ export class OracleEngajamentoComponent implements OnInit {
     return SEVERIDADE_COR[severidade] ?? 'var(--accent)';
   }
 
-  private tratarErro(err: unknown, pararCarregamento: () => void): void {
+  private tratarErro(
+    err: unknown,
+    pararCarregamento: () => void,
+    definirErro: (msg: string) => void = (msg) => (this.erro = msg),
+  ): void {
     if (err instanceof HttpErrorResponse && err.status === 503) {
       this.oracleDesabilitado = true;
     } else {
-      this.erro = apiErrorMessage(err);
+      definirErro(apiErrorMessage(err));
     }
     pararCarregamento();
   }
