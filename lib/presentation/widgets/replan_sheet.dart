@@ -52,8 +52,9 @@ class _ReplanSheetState extends State<_ReplanSheet> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _erro = e.message);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() => _erro = 'Não foi possível carregar a sugestão.');
+      }
     }
   }
 

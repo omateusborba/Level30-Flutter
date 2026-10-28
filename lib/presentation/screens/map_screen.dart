@@ -165,11 +165,12 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
 
-    if (mounted)
+    if (mounted) {
       setState(() {
         _markers = markers;
         _circles = circles;
       });
+    }
   }
 
   void _showInfo(Challenge c, double riskScore) {
@@ -379,10 +380,10 @@ class _Legend extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.border),
         ),
-        child: Column(
+        child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             _LegendDot(color: AppColors.accent, label: 'Você'),
             SizedBox(height: 4),
             _LegendDot(color: AppColors.riskLow, label: 'Ativo'),

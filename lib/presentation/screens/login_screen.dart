@@ -163,8 +163,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: AppColors.textSecond),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Insira seu e-mail';
+                    }
                     if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
                         .hasMatch(v.trim())) {
                       return 'E-mail inválido';
@@ -187,8 +188,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Insira sua senha';
-                    if (isSignup && v.length < 8)
+                    if (isSignup && v.length < 8) {
                       return 'Mínimo de 8 caracteres';
+                    }
                     return null;
                   },
                   onFieldSubmitted: (_) => _submit(),

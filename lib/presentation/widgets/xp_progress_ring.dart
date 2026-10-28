@@ -118,10 +118,10 @@ class _RingPainter extends CustomPainter {
 
     // Progress arc with gradient
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final gradient = SweepGradient(
+    const gradient = SweepGradient(
       startAngle: startAngle,
       endAngle: startAngle + 2 * math.pi,
-      colors: const [AppColors.accent, Color(0xFF00BFAE)],
+      colors: [AppColors.accent, Color(0xFF00BFAE)],
     );
     canvas.drawArc(
       rect,

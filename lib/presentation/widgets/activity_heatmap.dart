@@ -26,7 +26,7 @@ class ActivityHeatmap extends StatelessWidget {
     };
 
     final today = DateTime.now();
-    final start = today.subtract(Duration(days: _weeks * 7 - 1));
+    final start = today.subtract(const Duration(days: _weeks * 7 - 1));
     // alinha o início na segunda-feira da semana
     final gridStart = start.subtract(Duration(days: (start.weekday - 1) % 7));
 

@@ -28,7 +28,7 @@ flowchart TD
 | Job | O que faz | Observações |
 |---|---|---|
 | `api` | JDK 21 (cache Maven) → `mvn verify` (unitários, JaCoCo) → aplica `00_drop, 01, 02, 03, 06..10` e `99_smoke_test` no Oracle → `mvn verify -Poracle-it` | Falha se o log tiver `ORA-/PLS-/SP2-` ou se `USER_ERRORS` não for 0 |
-| `app` | `flutter pub get`, `flutter analyze --no-fatal-infos`, `flutter test` | `--no-fatal-infos`: a `main` tinha 33 lints *info* e o CI vermelho desde agosto; erros e warnings continuam reprovando. Corrigir os lints e remover a flag é uma pendência |
+| `app` | `flutter pub get`, `flutter analyze`, `flutter test` | Os 33 lints antigos foram corrigidos (`dart fix`); o gate é estrito |
 | `dashboard` | `npm ci`, `npm test` (Karma/Chrome headless), `ng build --configuration production` | |
 
 **Oracle no CI.** Escolhido um *service container* (`gvenzl/oracle-free:23-slim-faststart`, porta 1521,

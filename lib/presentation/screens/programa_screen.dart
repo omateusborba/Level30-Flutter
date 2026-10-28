@@ -31,9 +31,10 @@ class _ProgramaScreenState extends State<ProgramaScreen> {
       final r = await context.read<ChallengeProvider>().getPrograma();
       if (mounted) setState(() => _lista = r);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(
             () => _erro = 'Não foi possível carregar os desafios do programa.');
+      }
     }
   }
 

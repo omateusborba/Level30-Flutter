@@ -85,7 +85,7 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
         child: SliderTheme(
           // valor sempre visível na bolha sobre o thumb
           data: SliderTheme.of(context).copyWith(
-            showValueIndicator: ShowValueIndicator.always,
+            showValueIndicator: ShowValueIndicator.onDrag,
             valueIndicatorColor: AppColors.surface2,
             valueIndicatorTextStyle: const TextStyle(
                 color: AppColors.textPrimary, fontWeight: FontWeight.w600),
@@ -111,7 +111,7 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
               const SizedBox(height: 16),
 
               // Título
-              _SectionLabel('Título do desafio'),
+              const _SectionLabel('Título do desafio'),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
@@ -131,7 +131,7 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
               const SizedBox(height: 24),
 
               // Categoria
-              _SectionLabel('Categoria'),
+              const _SectionLabel('Categoria'),
               const SizedBox(height: 12),
               _CategorySelector(
                 selected: _selectedCategory,
@@ -140,7 +140,7 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
               const SizedBox(height: 24),
 
               // Descrição
-              _SectionLabel('Descrição'),
+              const _SectionLabel('Descrição'),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descController,
@@ -152,8 +152,9 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
                 ),
                 textCapitalization: TextCapitalization.sentences,
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty)
+                  if (v == null || v.trim().isEmpty) {
                     return 'Insira uma descrição';
+                  }
                   return null;
                 },
               ),
@@ -171,8 +172,8 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
                 label: '$_totalDays dias',
                 onChanged: (v) => setState(() => _totalDays = v.toInt()),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -199,8 +200,8 @@ class _CreateChallengeScreenState extends State<CreateChallengeScreen> {
                 label: '${_xpReward.toInt()} XP',
                 onChanged: (v) => setState(() => _xpReward = v),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
