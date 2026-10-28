@@ -2,6 +2,7 @@
 -- Level30 · Smart HAS — Fase 6
 -- 04_uso_pratico.sql — Functions em consultas e execução das procedures
 -- Rode bloco a bloco no SQL Developer para capturar os prints do documento.
+-- Fase 7: rode DEPOIS de 06..10 (as rotinas agora vivem em pkg_l30_engajamento).
 -- =====================================================================
 
 SET SERVEROUTPUT ON
@@ -10,7 +11,7 @@ SET SERVEROUTPUT ON
 -- 1. Ranking de adesão dos últimos 30 dias (function no SELECT e ORDER BY)
 -- ---------------------------------------------------------------------
 SELECT u.name                  AS aluno,
-       fn_taxa_adesao(u.id)    AS adesao_30d
+       pkg_l30_engajamento.fn_taxa_adesao(u.id)    AS adesao_30d
   FROM l30_users u
  WHERE u.role = 'USER'
  ORDER BY adesao_30d DESC NULLS LAST;
@@ -18,7 +19,7 @@ SELECT u.name                  AS aluno,
 -- ---------------------------------------------------------------------
 -- 2. Resumo formatado de todos os alunos (dados prontos para a UI)
 -- ---------------------------------------------------------------------
-SELECT fn_resumo_usuario(u.id) AS resumo
+SELECT pkg_l30_engajamento.fn_resumo_usuario(u.id) AS resumo
   FROM l30_users u
  WHERE u.role = 'USER'
  ORDER BY u.name;
@@ -26,10 +27,10 @@ SELECT fn_resumo_usuario(u.id) AS resumo
 -- ---------------------------------------------------------------------
 -- 3. Alunos que precisam de acompanhamento (function no WHERE)
 -- ---------------------------------------------------------------------
-SELECT u.name, u.email, fn_taxa_adesao(u.id) AS adesao_30d
+SELECT u.name, u.email, pkg_l30_engajamento.fn_taxa_adesao(u.id) AS adesao_30d
   FROM l30_users u
  WHERE u.role = 'USER'
-   AND fn_taxa_adesao(u.id) < 50
+   AND pkg_l30_engajamento.fn_taxa_adesao(u.id) < 50
  ORDER BY adesao_30d;
 
 -- ---------------------------------------------------------------------
@@ -45,8 +46,8 @@ SELECT aluno,
            ELSE 'ESTÁVEL'
        END AS tendencia
   FROM (SELECT u.name AS aluno,
-               fn_taxa_adesao(u.id, TRUNC(SYSDATE) - 6, TRUNC(SYSDATE)) AS adesao_7d,
-               fn_taxa_adesao(u.id) AS adesao_30d
+               pkg_l30_engajamento.fn_taxa_adesao(u.id, TRUNC(SYSDATE) - 6, TRUNC(SYSDATE)) AS adesao_7d,
+               pkg_l30_engajamento.fn_taxa_adesao(u.id) AS adesao_30d
           FROM l30_users u
          WHERE u.role = 'USER')
  ORDER BY aluno;
@@ -56,7 +57,7 @@ SELECT aluno,
 -- ---------------------------------------------------------------------
 SELECT c.title                                   AS desafio,
        COUNT(DISTINCT c.user_id)                 AS alunos,
-       ROUND(AVG(fn_taxa_adesao(c.user_id)), 1)  AS adesao_media_30d
+       ROUND(AVG(pkg_l30_engajamento.fn_taxa_adesao(c.user_id)), 1)  AS adesao_media_30d
   FROM l30_challenges c
  WHERE c.status = 'ATIVO'
  GROUP BY c.title
@@ -65,9 +66,9 @@ SELECT c.title                                   AS desafio,
 -- ---------------------------------------------------------------------
 -- 6. Tratamento de exceções (cada comando deve falhar com a mensagem do projeto)
 -- ---------------------------------------------------------------------
-SELECT fn_taxa_adesao('00000000-0000-0000-0000-000000000000') FROM dual;   -- ORA-20003
-SELECT fn_taxa_adesao(NULL) FROM dual;                                     -- ORA-20001
-SELECT fn_taxa_adesao(id, SYSDATE, SYSDATE - 10) FROM l30_users WHERE ROWNUM = 1;  -- ORA-20002
+SELECT pkg_l30_engajamento.fn_taxa_adesao('00000000-0000-0000-0000-000000000000') FROM dual;   -- ORA-20003
+SELECT pkg_l30_engajamento.fn_taxa_adesao(NULL) FROM dual;                                     -- ORA-20001
+SELECT pkg_l30_engajamento.fn_taxa_adesao(id, SYSDATE, SYSDATE - 10) FROM l30_users WHERE ROWNUM = 1;  -- ORA-20002
 
 -- ---------------------------------------------------------------------
 -- 7. pr_verificar_inatividade — rotina automatizada de alertas
@@ -93,7 +94,7 @@ SELECT u.name, a.severity, a.message, a.created_at
 DECLARE
     v_execucao NUMBER;
 BEGIN
-    pr_gerar_relatorio_engajamento(TRUNC(SYSDATE) - 29, TRUNC(SYSDATE), v_execucao);
+    pkg_l30_engajamento.pr_gerar_relatorio_engajamento(TRUNC(SYSDATE) - 29, TRUNC(SYSDATE), v_execucao);
     DBMS_OUTPUT.PUT_LINE('Relatório gerado. execution_id = ' || v_execucao);
 END;
 /
@@ -132,7 +133,7 @@ BEGIN
 
     SELECT * INTO v_user FROM l30_users WHERE id = v_ch.user_id;
 
-    pr_registrar_conclusao(
+    pkg_l30_engajamento.pr_registrar_conclusao(
         p_user_id         => v_user.id,
         p_user_name       => v_user.name,
         p_total_xp        => v_user.total_xp + 12,
@@ -148,7 +149,7 @@ BEGIN
     COMMIT;   -- no backend quem decide é a transação do Spring
     DBMS_OUTPUT.PUT_LINE(v_user.name || ' concluiu o dia ' || (v_ch.current_day + 1)
                          || ' de "' || v_ch.title || '". Alertas gerados: ' || v_alertas);
-    DBMS_OUTPUT.PUT_LINE(fn_resumo_usuario(v_user.id));
+    DBMS_OUTPUT.PUT_LINE(pkg_l30_engajamento.fn_resumo_usuario(v_user.id));
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         DBMS_OUTPUT.PUT_LINE('Nenhum desafio ATIVO pendente para hoje. '
