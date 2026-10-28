@@ -55,7 +55,7 @@ public class ReplanService {
         Challenge c = owned(userId, challengeId);
 
         if (c.getReplanCount() >= MAX_REPLANS) {
-            throw new RegraNegocioException("Voce ja replanejou este desafio 2 vezes.");
+            throw new RegraNegocioException("Você já replanejou este desafio 2 vezes.");
         }
         if (c.isCompleted()) {
             throw new RegraNegocioException("Desafio ja concluido.");
@@ -87,6 +87,6 @@ public class ReplanService {
 
     private Challenge owned(UUID userId, UUID challengeId) {
         return challenges.findByIdAndUserId(challengeId, userId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio nao encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio não encontrado."));
     }
 }

@@ -52,15 +52,15 @@ public class ProgramChallengeService {
     @Transactional
     public ChallengeResponse adotar(UUID userId, UUID programId) {
         ProgramChallenge p = programs.findById(programId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio do programa nao encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio do programa não encontrado."));
         if (!p.isActive()) {
-            throw new RegraNegocioException("Este desafio do programa nao esta mais disponivel.");
+            throw new RegraNegocioException("Este desafio do programa não está mais disponível.");
         }
         if (challenges.existsByUserIdAndProgramChallengeId(userId, programId)) {
-            throw new RegraNegocioException("Voce ja adotou este desafio.", HttpStatus.CONFLICT);
+            throw new RegraNegocioException("Você já adotou este desafio.", HttpStatus.CONFLICT);
         }
         User user = users.findById(userId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado."));
 
         Challenge c = Challenge.create(user, p.getTitle(), p.getCategory(), p.getDescription(),
                 p.getTotalDays(), p.getXpReward());
@@ -91,7 +91,7 @@ public class ProgramChallengeService {
     @Transactional
     public ProgramChallengeResponse definirAtivo(UUID id, boolean ativo) {
         ProgramChallenge p = programs.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio do programa nao encontrado."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Desafio do programa não encontrado."));
         p.setActive(ativo);
         return ProgramChallengeResponse.of(p, challenges.countByProgramChallengeId(id), false);
     }
@@ -99,7 +99,7 @@ public class ProgramChallengeService {
     @Transactional
     public void remover(UUID id) {
         if (!programs.existsById(id)) {
-            throw new RecursoNaoEncontradoException("Desafio do programa nao encontrado.");
+            throw new RecursoNaoEncontradoException("Desafio do programa não encontrado.");
         }
         programs.deleteById(id);
     }
