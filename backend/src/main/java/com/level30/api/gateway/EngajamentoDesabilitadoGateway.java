@@ -1,6 +1,9 @@
 package com.level30.api.gateway;
 
 import com.level30.api.domain.engajamento.AlertaEngajamento;
+import com.level30.api.domain.engajamento.EngajamentoFiltrado;
+import com.level30.api.domain.engajamento.FiltroEngajamento;
+import com.level30.api.domain.engajamento.RegistroAuditoria;
 import com.level30.api.domain.engajamento.RelatorioEngajamento;
 import com.level30.api.domain.engajamento.ResumoEngajamentoUsuario;
 import com.level30.api.domain.event.DesafioConcluidoEvent;
@@ -49,6 +52,16 @@ public class EngajamentoDesabilitadoGateway implements EngajamentoGateway {
 
     @Override
     public ResumoEngajamentoUsuario resumoUsuario(UUID userId) {
+        throw new CamadaOracleIndisponivelException(MSG);
+    }
+
+    @Override
+    public List<EngajamentoFiltrado> consultarEngajamento(FiltroEngajamento filtro) {
+        throw new CamadaOracleIndisponivelException(MSG);
+    }
+
+    @Override
+    public List<RegistroAuditoria> listarAuditoria(int limite) {
         throw new CamadaOracleIndisponivelException(MSG);
     }
 }

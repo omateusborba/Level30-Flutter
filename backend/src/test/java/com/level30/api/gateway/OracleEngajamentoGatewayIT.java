@@ -3,6 +3,10 @@ package com.level30.api.gateway;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.level30.api.domain.engajamento.DirecaoOrdenacao;
+import com.level30.api.domain.engajamento.EngajamentoFiltrado;
+import com.level30.api.domain.engajamento.FiltroEngajamento;
+import com.level30.api.domain.engajamento.OrdenacaoEngajamento;
 import com.level30.api.domain.event.DesafioConcluidoEvent;
 import com.level30.api.exception.RegraNegocioException;
 import java.io.IOException;
@@ -47,7 +51,7 @@ import org.testcontainers.oracle.OracleContainer;
 class OracleEngajamentoGatewayIT {
 
     @Container
-    static final OracleContainer ORACLE = new OracleContainer("gvenzl/oracle-free:slim-faststart");
+    static final OracleContainer ORACLE = new OracleContainer("gvenzl/oracle-free:23-slim-faststart");
 
     private static DataSource dataSource;
     private static JdbcTemplate jdbcTemplate;
@@ -67,6 +71,12 @@ class OracleEngajamentoGatewayIT {
         rodarScript(pastaScripts.resolve("01_ddl.sql"));
         rodarScript(pastaScripts.resolve("02_carga_simulada.sql"));
         rodarScript(pastaScripts.resolve("03_plsql.sql"));
+        // Fase 7: packages, triggers e consolidação (mesma ordem de db/oracle/README.md)
+        rodarScript(pastaScripts.resolve("06_pkg_engajamento.sql"));
+        rodarScript(pastaScripts.resolve("07_trg_audit_conclusao.sql"));
+        rodarScript(pastaScripts.resolve("08_trg_status_alerta.sql"));
+        rodarScript(pastaScripts.resolve("09_pkg_consultas.sql"));
+        rodarScript(pastaScripts.resolve("10_consolidacao.sql"));
 
         gateway = new OracleEngajamentoGateway(jdbcTemplate, dataSource);
     }
@@ -88,7 +98,8 @@ class OracleEngajamentoGatewayIT {
 
         int alertas = gateway.registrarConclusao(evento);
 
-        assertThat(alertas).isZero(); // primeira conclusão do desafio: sem alerta de streak/adesão
+        // streak=1 no dia 12 => a procedure gera STREAK_REINICIADO; o alerta de adesão é da trigger
+        assertThat(alertas).isEqualTo(1);
         Integer completions = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM l30_completions WHERE challenge_id = ?",
                 Integer.class, evento.challengeId().toString());
@@ -123,6 +134,102 @@ class OracleEngajamentoGatewayIT {
 
         assertThatThrownBy(() -> gateway.registrarConclusao(invalido))
                 .isInstanceOf(RegraNegocioException.class);
+    }
+
+    // ----------------------------------------------------------------
+    // Fase 7 — os três fluxos: auditoria, alerta (trigger composta) e Dynamic SQL
+    // ----------------------------------------------------------------
+
+    @Test
+    void conclusao_geraLinhaDeAuditoriaEmJson() {
+        DesafioConcluidoEvent evento = eventoValido();
+
+        gateway.registrarConclusao(evento);
+
+        var auditoria = gateway.listarAuditoria(500).stream()
+                .filter(a -> a.dadosNovos() != null && a.dadosNovos().contains(evento.userId().toString()))
+                .toList();
+        assertThat(auditoria).hasSize(1);
+        assertThat(auditoria.get(0).operacao()).isEqualTo("I");
+        assertThat(auditoria.get(0).tabela()).isEqualTo("L30_COMPLETIONS");
+        assertThat(auditoria.get(0).dadosNovos()).contains("\"challenge_id\"");
+        assertThat(auditoria.get(0).usuarioBanco()).isNotBlank();
+    }
+
+    @Test
+    void adesaoBaixa_abreAlertaEConclusoesSuficientesFecham() {
+        // desafio de 11 dias com 1 conclusão => ~9% (< 50): a trigger abre ADESAO_BAIXA
+        UUID usuario = UUID.randomUUID();
+        UUID desafio = UUID.randomUUID();
+        LocalDate inicio = LocalDate.now().minusDays(10);
+
+        gateway.registrarConclusao(evento(usuario, desafio, inicio, 1));
+        assertThat(alertasAbertosDeAdesao(usuario)).isEqualTo(1);
+
+        gateway.registrarConclusao(evento(usuario, desafio, inicio, 2));
+        assertThat(alertasAbertosDeAdesao(usuario)).as("sem duplicar enquanto aberto").isEqualTo(1);
+
+        for (int dia = 3; dia <= 11; dia++) {
+            gateway.registrarConclusao(evento(usuario, desafio, inicio, dia));
+        }
+        assertThat(alertasAbertosDeAdesao(usuario)).as("adesao 100% fecha o alerta").isZero();
+        Integer resolvidos = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM l30_alerts WHERE user_id = ? AND alert_type = 'ADESAO_BAIXA' "
+                        + "AND resolved = 1 AND resolved_at IS NOT NULL",
+                Integer.class, usuario.toString());
+        assertThat(resolvidos).isEqualTo(1);
+    }
+
+    @Test
+    void consultaFiltrada_respeitaFiltrosEOrdenacao() {
+        var todos = gateway.consultarEngajamento(filtro(null, null, OrdenacaoEngajamento.NOME, DirecaoOrdenacao.ASC));
+        assertThat(todos).isNotEmpty();
+        assertThat(todos).extracting(EngajamentoFiltrado::nome).isSorted();
+
+        var nivel2 = gateway.consultarEngajamento(filtro(2, null, OrdenacaoEngajamento.NIVEL, DirecaoOrdenacao.DESC));
+        assertThat(nivel2).allSatisfy(l -> assertThat(l.nivel()).isGreaterThanOrEqualTo(2));
+        assertThat(nivel2).extracting(EngajamentoFiltrado::nivel).isSortedAccordingTo(java.util.Comparator.reverseOrder());
+
+        var adesao = gateway.consultarEngajamento(
+                filtro(null, java.math.BigDecimal.valueOf(50), OrdenacaoEngajamento.ADESAO, DirecaoOrdenacao.DESC));
+        assertThat(adesao).allSatisfy(l -> assertThat(l.adesaoPercentual()).isGreaterThanOrEqualTo(java.math.BigDecimal.valueOf(50)));
+    }
+
+    @Test
+    void injecaoNaOrdenacao_barradaPelaWhitelistDoPlsql() {
+        // Contorna o enum do Java de propósito (SQL direto): prova que o PL/SQL se defende sozinho.
+        assertThatThrownBy(() -> jdbcTemplate.queryForList(
+                "SELECT pkg_l30_consultas.fn_engajamento_filtrado(p_ordenar_por => ?) FROM dual",
+                "X; DROP TABLE l30_users"))
+                .hasMessageContaining("ORA-20050");
+        Integer tabela = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM user_tables WHERE table_name = 'L30_USERS'", Integer.class);
+        assertThat(tabela).isEqualTo(1);
+    }
+
+    @Test
+    void enumsDoJava_rejeitamValorForaDaLista() {
+        assertThatThrownBy(() -> OrdenacaoEngajamento.de("X; DROP TABLE"))
+                .isInstanceOf(RegraNegocioException.class);
+        assertThatThrownBy(() -> DirecaoOrdenacao.de("DESC, 1"))
+                .isInstanceOf(RegraNegocioException.class);
+    }
+
+    private static FiltroEngajamento filtro(Integer nivelMin, java.math.BigDecimal adesaoMin,
+                                            OrdenacaoEngajamento ordem, DirecaoOrdenacao direcao) {
+        return new FiltroEngajamento(null, null, nivelMin, adesaoMin, ordem, direcao);
+    }
+
+    private static int alertasAbertosDeAdesao(UUID usuario) {
+        Integer n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM l30_alerts WHERE user_id = ? AND alert_type = 'ADESAO_BAIXA' AND resolved = 0",
+                Integer.class, usuario.toString());
+        return n == null ? 0 : n;
+    }
+
+    private static DesafioConcluidoEvent evento(UUID usuario, UUID desafio, LocalDate inicio, int dia) {
+        return new DesafioConcluidoEvent(usuario, "Aluno Fase7", 100, desafio, "Desafio fase 7",
+                inicio, dia, dia, inicio.plusDays(dia - 1L), 10);
     }
 
     private static DesafioConcluidoEvent eventoValido() {
