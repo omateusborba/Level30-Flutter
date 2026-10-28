@@ -1,0 +1,113 @@
+{
+  "comentario": "Fixture compartilhada Dart/Java (paridade do RiskEngine). diasSemAtividade null = lastActivityAt nulo; senão lastActivityAt = agora - N dias - 1h.",
+  "casos": [
+    {
+      "nome": "Corrida matinal (print da demo: 3/30, streak 0, 4 dias parado)",
+      "currentDay": 3,
+      "totalDays": 30,
+      "streak": 0,
+      "diasSemAtividade": 4,
+      "scoreEsperado": 0.97,
+      "nivelEsperado": "critical"
+    },
+    {
+      "nome": "Leitura diária (ativa hoje, streak alto)",
+      "currentDay": 12,
+      "totalDays": 30,
+      "streak": 12,
+      "diasSemAtividade": 0,
+      "scoreEsperado": 0.18,
+      "nivelEsperado": "low"
+    },
+    {
+      "nome": "Meditação concluída",
+      "currentDay": 30,
+      "totalDays": 30,
+      "streak": 30,
+      "diasSemAtividade": 0,
+      "scoreEsperado": 0.0,
+      "nivelEsperado": "low"
+    },
+    {
+      "nome": "Sem atividade e streak zero",
+      "currentDay": 5,
+      "totalDays": 30,
+      "streak": 0,
+      "diasSemAtividade": null,
+      "scoreEsperado": 0.8,
+      "nivelEsperado": "critical"
+    },
+    {
+      "nome": "Sem atividade com streak",
+      "currentDay": 5,
+      "totalDays": 30,
+      "streak": 3,
+      "diasSemAtividade": null,
+      "scoreEsperado": 0.46,
+      "nivelEsperado": "medium"
+    },
+    {
+      "nome": "1 dia parado",
+      "currentDay": 10,
+      "totalDays": 30,
+      "streak": 2,
+      "diasSemAtividade": 1,
+      "scoreEsperado": 0.54,
+      "nivelEsperado": "high"
+    },
+    {
+      "nome": "2 dias parado",
+      "currentDay": 10,
+      "totalDays": 30,
+      "streak": 2,
+      "diasSemAtividade": 2,
+      "scoreEsperado": 0.69,
+      "nivelEsperado": "high"
+    },
+    {
+      "nome": "Sono regular (1/30, 9 dias parado)",
+      "currentDay": 1,
+      "totalDays": 30,
+      "streak": 0,
+      "diasSemAtividade": 9,
+      "scoreEsperado": 0.99,
+      "nivelEsperado": "critical"
+    },
+    {
+      "nome": "Desafio curto 14 dias",
+      "currentDay": 9,
+      "totalDays": 14,
+      "streak": 6,
+      "diasSemAtividade": 1,
+      "scoreEsperado": 0.327143,
+      "nivelEsperado": "medium"
+    },
+    {
+      "nome": "Streak 10 bom progresso",
+      "currentDay": 25,
+      "totalDays": 30,
+      "streak": 10,
+      "diasSemAtividade": 0,
+      "scoreEsperado": 0.05,
+      "nivelEsperado": "low"
+    },
+    {
+      "nome": "Início do desafio, ativo hoje, streak 0",
+      "currentDay": 0,
+      "totalDays": 30,
+      "streak": 0,
+      "diasSemAtividade": 0,
+      "scoreEsperado": 0.6,
+      "nivelEsperado": "high"
+    },
+    {
+      "nome": "Início do desafio, 2 dias parado, streak 0",
+      "currentDay": 0,
+      "totalDays": 30,
+      "streak": 0,
+      "diasSemAtividade": 2,
+      "scoreEsperado": 0.85,
+      "nivelEsperado": "critical"
+    }
+  ]
+}

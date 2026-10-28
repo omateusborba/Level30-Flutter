@@ -40,10 +40,18 @@ public class RiskEngine {
     }
 
     public double calculateScore(Challenge c) {
+        return calculateScore(c, Instant.now());
+    }
+
+    /**
+     * Mesma fórmula, com o "agora" injetado. Existe só para reconstruir o risco de datas passadas
+     * (snapshots históricos da demo); a fórmula em si não muda.
+     */
+    public double calculateScore(Challenge c, Instant now) {
         double score = 0.0;
 
         // Fator 1: dias sem atividade (40%)
-        int daysSince = daysSinceLastActivity(c);
+        int daysSince = daysSinceLastActivity(c, now);
         score += switch (daysSince) {
             case 0 -> 0.0;
             case 1 -> 0.1;
@@ -91,11 +99,11 @@ public class RiskEngine {
         };
     }
 
-    private int daysSinceLastActivity(Challenge c) {
+    private int daysSinceLastActivity(Challenge c, Instant now) {
         if (c.getLastActivityAt() == null) {
             return c.getStreak() == 0 ? 2 : 0;
         }
-        return (int) Duration.between(c.getLastActivityAt(), Instant.now()).toDays();
+        return (int) Duration.between(c.getLastActivityAt(), now).toDays();
     }
 
     private double clamp01(double v) {
